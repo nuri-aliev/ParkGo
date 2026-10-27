@@ -1,0 +1,25 @@
+# Секреты и локальные конфиги
+secret.key
+*.key
+.env
+.env.*
+
+# Локальные базы данных (персональные данные)
+*.db
+*.sqlite
+*.sqlite3
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# Архивы
+*.zip
+
+# ОС / редактор
+.DS_Store
+.idea/
+.vscode/
