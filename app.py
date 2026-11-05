@@ -6,13 +6,17 @@ import secrets
 import sqlite3
 import sys
 import time
+import math
+import urllib.request
+import xml.etree.ElementTree as ET
+from zoneinfo import ZoneInfo
 
 from flask import (Flask, render_template, request, redirect, jsonify,
                    session, url_for)
 from werkzeug.security import generate_password_hash, check_password_hash
 
 BASE = os.path.dirname(os.path.abspath(__file__))
-DB = "parking.db"
+DB = os.environ.get("PARKGO_DB", os.path.join(BASE, "parking.db"))
 STARTED = time.time()
 
 # --- настройки -------------------------------------------------------------
@@ -88,11 +92,13 @@ def init_db():
                 role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'admin')),
                 created_at TEXT NOT NULL
             )""")
-        for col in ("created_at TEXT", "user_id INTEGER"):  # миграция старой базы
+        for col in ("created_at TEXT", "user_id INTEGER", "expires_at INTEGER", "request_key TEXT"):  # миграция старой базы
             try:
                 con.execute(f"ALTER TABLE reservations ADD COLUMN {col}")
             except sqlite3.OperationalError:
                 pass
+
+        con.execute("CREATE UNIQUE INDEX IF NOT EXISTS reservation_request ON reservations(user_id, request_key)")
 
         # добавляем парковки, которых ещё нет (старые данные не трогаем)
         for lot, d in LOTS.items():
@@ -259,7 +265,72 @@ def home():
         spots = spots_json(con)
     return render_template("index.html", spots=spots,
                            lots={k: v["xy"] for k, v in LOTS.items()},
-                           user=current_user())
+                           user=current_user(), bookings=my_bookings())
+
+
+def my_bookings():
+    user = current_user()
+    if user is None:
+        return []
+    with sqlite3.connect(DB) as con:
+        con.row_factory = sqlite3.Row
+        rows = con.execute("""SELECT r.*, p.name AS spot, p.location, p.price
+            FROM reservations r JOIN parking_spots p ON p.id = r.spot_id
+            WHERE r.user_id = ? ORDER BY r.id DESC""", (user["id"],)).fetchall()
+    return [dict(r) for r in rows]
+
+
+@app.before_request
+def expire_bookings():
+    # Old bookings have no known expiry; keep them until explicitly cancelled.
+    with sqlite3.connect(DB) as con:
+        con.execute("BEGIN IMMEDIATE")
+        expired = con.execute("SELECT id, spot_id FROM reservations WHERE expires_at <= ?",
+                              (int(time.time()),)).fetchall()
+        for rid, spot_id in expired:
+            con.execute("DELETE FROM reservations WHERE id = ?", (rid,))
+            con.execute("""UPDATE parking_spots SET status = 'Available'
+                WHERE id = ? AND status = 'Reserved'
+                AND NOT EXISTS (SELECT 1 FROM reservations WHERE spot_id = ?)""",
+                        (spot_id, spot_id))
+
+
+@app.route("/api/reservations")
+def api_reservations():
+    if current_user() is None:
+        return jsonify(error="Please log in."), 401
+    response = jsonify(my_bookings())
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+FX_CACHE = {"checked": 0, "value": None}
+
+
+@app.route("/api/exchange-rate")
+def exchange_rate():
+    # Dated official NBK feed. Never substitute an invented exchange rate.
+    today = datetime.now(ZoneInfo("Asia/Almaty")).strftime("%d.%m.%Y")
+    if time.time() - FX_CACHE["checked"] > 300 or FX_CACHE.get("date") != today:
+        FX_CACHE.update(checked=time.time(), value=None, date=today)
+        try:
+            url = "https://nationalbank.kz/rss/get_rates.cfm?fdate=" + today
+            with urllib.request.urlopen(url, timeout=4) as response:
+                root = ET.fromstring(response.read(250000))
+            for item in root.findall(".//item"):
+                if item.findtext("title", "").strip() == "USD":
+                    rate = float(item.findtext("description", "0").replace(",", "."))
+                    units = float(item.findtext("quant", "1"))
+                    rate /= units
+                    if not math.isfinite(rate) or rate <= 0:
+                        raise ValueError("Invalid rate")
+                    FX_CACHE["value"] = dict(kzt_per_usd=rate, date=today, source=url)
+                    break
+        except (OSError, ValueError, ET.ParseError, ZeroDivisionError):
+            pass
+    if FX_CACHE["value"] is None:
+        return jsonify(error="USD estimate unavailable"), 503
+    return jsonify(FX_CACHE["value"])
 
 
 @app.route("/api/spots")
@@ -282,8 +353,23 @@ def book(spot_id):
     if not name or not car:
         return "Please enter your name and car number.", 400
 
+    try:
+        minutes = int(request.form.get("minutes", "30"))
+    except ValueError:
+        return "Invalid duration.", 400
+    if minutes not in (15, 30, 60, 120):
+        return "Invalid duration.", 400
+    request_key = request.form.get("request_key", "").strip()[:100] or None
+    expires_at = int(time.time()) + minutes * 60
+
     with sqlite3.connect(DB) as con:
         con.execute("PRAGMA foreign_keys = ON")
+        con.execute("BEGIN IMMEDIATE")
+        if request_key:
+            previous = con.execute("SELECT id FROM reservations WHERE user_id = ? AND request_key = ?",
+                                   (user["id"], request_key)).fetchone()
+            if previous:
+                return jsonify(ok=True, reservation_id=previous[0])
         spot = con.execute(
             "SELECT status FROM parking_spots WHERE id = ?", (spot_id,)
         ).fetchone()
@@ -293,9 +379,9 @@ def book(spot_id):
             return "This parking spot is no longer available.", 409
 
         cur = con.execute(
-            """INSERT INTO reservations (spot_id, customer_name, car_number, created_at, user_id)
-               VALUES (?, ?, ?, ?, ?)""",
-            (spot_id, name, car, now(), user["id"]),
+            """INSERT INTO reservations (spot_id, customer_name, car_number, created_at, user_id, expires_at, request_key)
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            (spot_id, name, car, now(), user["id"], expires_at, request_key),
         )
         reservation_id = cur.lastrowid
         con.execute("UPDATE parking_spots SET status = 'Reserved' WHERE id = ?", (spot_id,))
@@ -311,6 +397,7 @@ def cancel(reservation_id):
     if user is None:
         return "Please log in.", 401
     with sqlite3.connect(DB) as con:
+        con.execute("BEGIN IMMEDIATE")
         row = con.execute(
             "SELECT spot_id, user_id FROM reservations WHERE id = ?", (reservation_id,)
         ).fetchone()
@@ -319,7 +406,7 @@ def cancel(reservation_id):
         if user["role"] != "admin" and row[1] != user["id"]:
             return "You can cancel only your own booking.", 403
         con.execute("DELETE FROM reservations WHERE id = ?", (reservation_id,))
-        con.execute("UPDATE parking_spots SET status = 'Available' WHERE id = ?", (row[0],))
+        con.execute("UPDATE parking_spots SET status = 'Available' WHERE id = ? AND NOT EXISTS (SELECT 1 FROM reservations WHERE spot_id = ?)", (row[0], row[0]))
     return jsonify(ok=True)
 
 
@@ -428,5 +515,5 @@ if __name__ == "__main__":
         make_admin(sys.argv[2], sys.argv[3])
         print("Администратор сохранён:", sys.argv[2].lower())
         sys.exit(0)
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=False)
 

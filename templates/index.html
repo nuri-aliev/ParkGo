@@ -5,6 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>ParkGo</title>
 <style>
+#loader{position:fixed;inset:0;z-index:100;background:#f4f8f5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;font-family:system-ui;color:#0f7a3a}
+#loader[hidden]{display:none}
+.spinner{width:44px;height:44px;border:4px solid #d5e8db;border-top-color:#17964a;border-radius:50%;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.spinner{animation:none}}
+.booking-item{display:block;width:100%;padding:18px;margin-bottom:12px;text-align:left;line-height:1.6}
+.booking-item span{display:block;color:var(--mut)}
+#done>.cta{flex-shrink:0} #done{padding-bottom:24px}
+#fxNote{font-size:12px;line-height:1.5;color:var(--mut)}
+
 :root{--g:#17964a;--gd:#0f7a3a;--gl:#e3f4e8;--ink:#16211b;--mut:#7a867f;--bg:#f4f8f5;--ln:#e1e8e3;--am:#e8a62a;--rd:#dc4b4b;--f:"Inter","Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif}
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;background:#dfe6e1;font-family:var(--f);color:var(--ink)}
@@ -115,6 +125,8 @@ input.n{width:100%;height:60px;border-radius:16px;border:1px solid var(--ln);pad
 </style>
 </head>
 <body>
+<div id="loader" role="status"><div class="spinner"></div><b>ParkGo</b><span>Загрузка / Loading…</span></div>
+<noscript><style>#loader{display:none}</style>Для ParkGo необходимо включить JavaScript.</noscript>
 <div id="app">
 
 <!-- MAP -->
@@ -128,21 +140,26 @@ input.n{width:100%;height:60px;border-radius:16px;border:1px solid var(--ln);pad
     <div class="me"></div>
   </div>
   <div class="top">
-    <div class="brandrow"><div class="brand"><span class="mark"><img src="/static/images/parkgo-logo.jpg" alt=""></span>ParkGo</div><div style="display:flex;gap:8px;align-items:center"><a class="adm" href="/admin" aria-label="System overview" title="System overview">📊</a><div class="lang"></div></div></div>
-    <label class="search"><img class="ui-icon" src="/static/images/search.png" alt=""><input id="q" data-ph="search" autocomplete="off"></label>
+    <div class="brandrow"><div class="brand"><span class="mark"><img src="/static/images/parkgo-logo.jpg" alt="logotype"></span>ParkGo</div><div style="display:flex;gap:8px;align-items:center">{% if user and user.role == "admin" %}<a class="adm" href="/admin" aria-label="System overview" title="System overview">📊</a>{% endif %}<div class="lang"></div></div></div>
+    <label class="search"><img class="ui-icon" src="/static/images/search.png" alt="search"><input id="q" data-ph="search" autocomplete="off"></label>
     <div class="chips" id="chips"></div>
   </div>
   <button class="peek card" id="peek"></button>
-  <nav class="nav"><button class="on" data-go="home"><img class="ui-icon" src="/static/images/home.png" alt=""><span data-t="map"></span></button><button data-go="support"><img class="ui-icon" src="/static/images/support.png" alt=""><span data-t="support"></span></button></nav>
+  <nav class="nav"><button class="on" data-go="home"><img class="ui-icon" src="/static/images/home.png" alt="home"><span data-t="map"></span></button><button data-go="bookings"><span data-t="myBookings"></span></button><button data-go="support"><img class="ui-icon" src="/static/images/support.png" alt="support"><span data-t="support"></span></button></nav>
   <div class="shade" id="shade"></div>
   <div class="sheet" id="sheet"></div>
 </section>
 
+<section class="scr" id="bookings">
+  <div class="bar"><button class="back" data-go="home" aria-label="Back">‹</button><h3 data-t="myBookings"></h3><div class="lang"></div></div>
+  <div class="body"><p class="err" id="bookingsError" role="alert"></p><div id="bookingList"></div></div>
+  <div class="foot"><button class="cta" data-go="home" data-t="anotherCar"></button></div>
+</section>
 <!-- BOOK -->
 <section class="scr" id="book">
   <div class="bar"><button class="back" id="bback" aria-label="Back">‹</button><h3 data-t="bookTitle"></h3><div class="lang"></div></div>
   <div class="body">
-    <div class="card" style="display:flex;gap:14px;align-items:center;padding:18px"><span class="pbox" style="width:56px;height:56px;font-size:28px"><img src="/static/images/parkgo-logo.jpg" alt=""></span><div><small style="color:var(--mut)" data-t="chosen"></small><b id="bname" style="display:block;font-size:22px"></b><span class="free" id="bfree"></span></div></div>
+    <div class="card" style="display:flex;gap:14px;align-items:center;padding:18px"><span class="pbox" style="width:56px;height:56px;font-size:28px"><img src="/static/images/parkgo-logo.jpg" alt="logo"></span><div><small style="color:var(--mut)" data-t="chosen"></small><b id="bname" style="display:block;font-size:22px"></b><span class="free" id="bfree"></span></div></div>
     <h4 data-t="when"></h4>
     <div class="opts" id="opts"></div>
     <h4 data-t="yourName"></h4>
@@ -150,7 +167,7 @@ input.n{width:100%;height:60px;border-radius:16px;border:1px solid var(--ln);pad
     <h4 data-t="plate"></h4>
     <div class="plate"><i>KZ</i><input class="f" id="plate" maxlength="20" placeholder="123 ABC 01" autocapitalize="characters"></div>
     <div class="rows"><div><span data-t="parking"></span><b id="rloc"></b></div><div><span data-t="spot"></span><b id="rspot"></b></div><div><span data-t="cost"></span><b id="rprice"></b></div></div>
-    <p class="note" data-t="note"></p>
+    <p class="note" data-t="note"></p><p id="fxNote"></p>
     <p class="err" id="err"></p>
   </div>
   <div class="foot"><button class="cta" id="confirm" data-t="confirm"></button></div>
@@ -163,13 +180,16 @@ input.n{width:100%;height:60px;border-radius:16px;border:1px solid var(--ln);pad
   <p class="sub" style="margin:22px 0 4px" data-t="confirmed"></p>
   <h1 data-t="booked"></h1>
   <div class="ticket card">
-    <div class="shead"><div><small id="dloc"></small><h2 id="dspot"></h2></div><span class="pbox"><img src="/static/images/parkgo-logo.jpg" alt=""></span></div>
+    <div class="shead"><div><small id="dloc"></small><h2 id="dspot"></h2></div><span class="pbox"><img src="/static/images/parkgo-logo.jpg" alt="logo"></span></div>
     <div class="until"><span data-t="until"></span><b id="duntil"></b></div>
-    <div class="qr" id="qr"></div>
-    <p style="text-align:center;font-size:12px;color:var(--mut);margin:8px 0 0" data-t="showQr"></p>
+    <p id="dcar"></p><p id="dref"></p>
+    <p style="text-align:center;font-size:12px;color:var(--mut);margin:8px 0 0" data-t="saved"></p>
   </div>
   <div class="timer">⏱ <span id="dleft"></span></div>
   <a class="cta" id="go" target="_blank" rel="noopener" style="text-decoration:none" data-t="go"></a>
+  <button class="cta dark" data-go="home" data-t="anotherCar" style="flex-shrink:0;margin-top:12px"></button>
+  <button class="cancel" data-go="bookings" data-t="myBookings"></button>
+  <p class="err" id="doneError" role="alert"></p>
   <button class="cancel" id="cancel" data-t="cancel"></button>
 </section>
 
@@ -189,7 +209,7 @@ input.n{width:100%;height:60px;border-radius:16px;border:1px solid var(--ln);pad
 </section>
 <!-- SUPPORT -->
 <section class="scr" id="support" style="background:var(--bg)">
-  <div class="shead2"><div class="lang" style="position:absolute;right:14px;top:calc(14px + env(safe-area-inset-top))"></div><span class="sicon"><img src="/static/images/support.png" alt=""></span><h1 data-t="help"></h1><p data-t="helpSub"></p></div>
+  <div class="shead2"><div class="lang" style="position:absolute;right:14px;top:calc(14px + env(safe-area-inset-top))"></div><span class="sicon"><img src="/static/images/support.png" alt="support"></span><h1 data-t="help"></h1><p data-t="helpSub"></p></div>
   <div class="body">
     <h4 style="margin-top:4px" data-t="helpH"></h4>
     <ul class="list card">
@@ -199,7 +219,7 @@ input.n{width:100%;height:60px;border-radius:16px;border:1px solid var(--ln);pad
     <button class="contact" data-sup="chat" style="width:100%;text-align:left"><div><b data-t="contact"></b><br><span style="font-size:13px;color:var(--mut)" data-t="contactS"></span></div><span class="on-badge">Online</span></button>
     <p id="acct" style="text-align:center;color:var(--mut);font-size:14px;margin-top:18px"></p>
   </div>
-  <nav class="nav" style="position:static"><button data-go="home"><img class="ui-icon" src="/static/images/home.png" alt=""><span data-t="map"></span></button><button class="on" data-go="support"><img class="ui-icon" src="/static/images/support.png" alt=""><span data-t="support"></span></button></nav>
+  <nav class="nav" style="position:static"><button data-go="home"><img class="ui-icon" src="/static/images/home.png" alt="home"><span data-t="map"></span></button><button data-go="bookings"><span data-t="myBookings"></span></button><button class="on" data-go="support"><img class="ui-icon" src="/static/images/support.png" alt="support"><span data-t="support"></span></button></nav>
 </section>
 </div>
 
@@ -210,22 +230,67 @@ const COORD={{ lots|tojson }};/* [долгота, широта] парковок
 const navUrl=l=>"https://www.google.com/maps/search/?api=1&query="+(COORD[l]?COORD[l][1]+","+COORD[l][0]:encodeURIComponent(l));
 const USER={{ (user.email if user else none)|tojson }},NAME={{ (user.full_name if user else "")|tojson }};
 let gmap=null,gmarks=[];
+let BOOKINGS={{ bookings|tojson }},fx=null;
+const storage={get(k){try{return localStorage.getItem(k)}catch{return null}},set(k,v){try{localStorage.setItem(k,v)}catch{}}};
+const activeKey="pg-active-"+USER;
+function finishLoading(){document.querySelector("#loader").hidden=true}
+setTimeout(finishLoading,6000);
 function pinIcon(n,sel){const c=n==0?"#dc4b4b":n==1?"#e8a62a":"#17964a";
  const v=`<svg xmlns="http://www.w3.org/2000/svg" width="78" height="46" viewBox="0 0 78 46"><rect x="4" y="3" width="70" height="40" rx="20" fill="${c}" stroke="${sel?"#16211b":"#fff"}" stroke-width="${sel?4:3}"/><text x="22" y="29" font-family="Arial,sans-serif" font-size="14" font-weight="700" fill="#ffffffbb">P</text><text x="48" y="32" font-family="Arial,sans-serif" font-size="22" font-weight="800" fill="#fff" text-anchor="middle">${n}</text></svg>`;
  return "data:image/svg+xml;charset=utf-8,"+encodeURIComponent(v)}
-function initMap(){if(!KEY)return;const sc=document.createElement("script");sc.src="https://mapgl.2gis.com/api/js/v1";
- sc.onload=()=>{$("#map").innerHTML='<div id="gl" style="position:absolute;inset:0"></div>';gmap=new mapgl.Map("gl",{center:[71.4186,51.0911],zoom:16.5,key:KEY,zoomControl:false});render()};document.head.append(sc)}
+function initMap(){return new Promise(resolve=>{
+ if(!KEY){resolve();return}
+ let settled=false;const finish=()=>{if(settled)return;settled=true;resolve()};
+ const sc=document.createElement("script");sc.src="https://mapgl.2gis.com/api/js/v1";
+ const timeout=setTimeout(()=>{sc.remove();finish()},4500);
+ sc.onerror=()=>{clearTimeout(timeout);finish()};
+ sc.onload=()=>{if(settled)return;clearTimeout(timeout);
+  try{const gl=document.createElement("div");gl.id="gl";gl.style="position:absolute;inset:0";$("#map").append(gl);
+   gmap=new mapgl.Map("gl",{center:[71.4186,51.0911],zoom:16.5,key:KEY,zoomControl:false});
+   gmap.on("load",finish);setTimeout(finish,1000);render();
+  }catch{gmap=null;$("#gl")?.remove();render();finish()}
+ };document.head.append(sc)
+})}
 const POS={"Campus North":[30,28],"Campus South":[66,46],"Main Building":[34,70]};
 const T={ru:{search:"Найти парковку рядом",map:"Карта",support:"Поддержка",all:"Все",bookTitle:"Забронировать место",chosen:"Выбранная парковка",when:"На какое время?",yourName:"Ваше имя",plate:"Номер автомобиля",parking:"Парковка",spot:"Место",cost:"Стоимость",note:"Оплата производится по фактическому времени парковки. Бронь можно отменить в любой момент.",confirm:"Подтвердить бронь",confirmed:"БРОНИРОВАНИЕ ПОДТВЕРЖДЕНО",booked:"Место забронировано",until:"Бронь до",showQr:"Покажите QR-код при въезде",go:"Поехать к парковке",cancel:"Отменить бронь",help:"Чем помочь?",helpSub:"Поддержка ParkGo работает каждый день",helpH:"Помощь",faq:"Частые вопросы",faqS:"Ответы о ParkGo",bIssue:"Проблема с бронью",bIssueS:"Изменить или отменить бронь",pIssue:"Проблема с оплатой",pIssueS:"Чеки и способы оплаты",contact:"Написать в поддержку",contactS:"Обычно отвечаем за 2 минуты",send:"Отправить",contactLbl:"Как с вами связаться (по желанию)",contactPh:"Телефон или email",msgPh:"Опишите проблему",sent:"Отправлено, мы скоро ответим",hintB:"Расскажите, что случилось с бронью.",hintP:"Расскажите, что не так с оплатой.",hintC:"Напишите нам, мы ответим в течение пары минут.",faqs:[["Как забронировать место?","Выберите парковку на карте, нажмите «Забронировать», укажите имя и номер автомобиля и подтвердите бронь."],["Как отменить бронь?","После брони откройте экран подтверждения и нажмите «Отменить бронь». Место сразу станет свободным."],["Когда я плачу?","Оплата идёт по фактическому времени парковки, бронь бесплатная."],["Что делать, если мест нет?","Выберите другую парковку на карте: красный маркер значит, что свободных мест нет."]],signedAs:"Вы вошли как",logout:"Выйти",login:"Войти",free:n=>`${n} свободных мест`,of:"из",total:"Всего мест",rate:"Стоимость",nextSpot:"Ваше место",book:"Забронировать",go2:"Поехать",h:"₸/час",now:"Сейчас",m30:"30 минут",h1:"1 час",h2:"2 часа",left:m=>`Бронь действует ещё ${m} минут`,full:"Свободных мест нет",fill:"Введите имя и номер автомобиля"},
 en:{search:"Find parking nearby",map:"Map",support:"Support",all:"All",bookTitle:"Book a spot",chosen:"Selected parking",when:"For how long?",yourName:"Your name",plate:"Car plate number",parking:"Parking",spot:"Spot",cost:"Price",note:"Payment is based on actual parking time. You can cancel a booking at any time.",confirm:"Confirm booking",confirmed:"BOOKING CONFIRMED",booked:"Spot reserved",until:"Reserved until",showQr:"Show the QR code at the entrance",go:"Drive to parking",cancel:"Cancel booking",help:"How can we help?",helpSub:"ParkGo support is available every day",helpH:"Help",faq:"Frequently asked questions",faqS:"Answers about ParkGo",bIssue:"Booking issue",bIssueS:"Change or cancel a booking",pIssue:"Payment issue",pIssueS:"Receipts and payment methods",contact:"Contact support",contactS:"We usually reply in 2 minutes",send:"Send",contactLbl:"How to reach you (optional)",contactPh:"Phone or email",msgPh:"Describe the problem",sent:"Sent, we will reply soon",hintB:"Tell us what happened with your booking.",hintP:"Tell us what is wrong with the payment.",hintC:"Write to us, we usually reply in a couple of minutes.",faqs:[["How do I book a spot?","Choose a parking on the map, tap Book, enter your name and car plate, then confirm."],["How do I cancel a booking?","Open the confirmation screen after booking and tap Cancel booking. The spot becomes free right away."],["When do I pay?","You pay for the actual parking time. Booking itself is free."],["What if there are no spots?","Pick another parking on the map. A red marker means there are no free spots."]],signedAs:"Signed in as",logout:"Log out",login:"Log in",free:n=>`${n} spaces available`,of:"of",total:"Total spots",rate:"Price",nextSpot:"Your spot",book:"Book",go2:"Go",h:"₸/hour",now:"Now",m30:"30 minutes",h1:"1 hour",h2:"2 hours",left:m=>`Booking is valid for ${m} more minutes`,full:"No free spots",fill:"Enter your name and car plate"}};
-let tcat=null,lang=localStorage.getItem("pg-lang")||"ru",cur=null,mins=30,rid=null,filt="all",busy=false;
+Object.assign(T.ru,{myBookings:"Мои брони",anotherCar:"На карту / другая машина",saved:"Бронь сохранена в вашем аккаунте",empty:"У вас пока нет активных броней",legacy:"До отмены",expired:"Срок брони истёк",network:"Не удалось связаться с сервером. Попробуйте ещё раз.",reference:"Номер брони",loading:"Загрузка…"});
+Object.assign(T.en,{myBookings:"My bookings",anotherCar:"Map / another car",saved:"Booking saved in your account",empty:"You have no active bookings",legacy:"Until cancelled",expired:"Booking expired",network:"Unable to reach the server. Please try again.",reference:"Booking number",loading:"Loading…"});
+let tcat=null,lang=storage.get("pg-lang")==="en"?"en":"ru",cur=null,mins=30,rid=null,filt="all",busy=false;
 const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s),t=k=>T[lang][k];
 const groups={};SPOTS.forEach(s=>(groups[s.loc]??=[]).push(s));
 const info=l=>{const a=groups[l],f=a.filter(s=>s.free);return{loc:l,all:a,free:f,n:f.length,price:a[0].price}};
 const cls=n=>n==0?"no":n==1?"mid":"ok";
-function show(id){$$(".scr").forEach(s=>s.classList.toggle("on",s.id==id))}
+function show(id){closeSheet();$$(".scr").forEach(s=>s.classList.toggle("on",s.id==id));
+ if(id!=="done")storage.set(activeKey,"");
+ if(id==="bookings")refreshBookings().catch(()=>{$("#bookingsError").textContent=t("network")})}
+function price(kzt){return lang==="en"?`${kzt} ₸/hour${fx?` (≈ $${(kzt/fx.kzt_per_usd).toFixed(2)}/hour)`:" · USD unavailable"}`:`${kzt} ₸/час`}
+function renderBookings(){
+ const list=$("#bookingList");list.replaceChildren();
+ if(!USER){const a=document.createElement("a");a.href="/login?next=/";a.textContent=t("login");list.append(a);return}
+ if(!BOOKINGS.length){list.textContent=t("empty");return}
+ BOOKINGS.forEach(b=>{const button=document.createElement("button");button.className="card booking-item";
+ const title=document.createElement("b"),detail=document.createElement("span");
+ title.textContent=`${b.location} · ${b.spot}`;detail.textContent=`${b.car_number} · #${b.id} · ${b.expires_at?new Date(b.expires_at*1000).toLocaleString(lang):t("legacy")}`;
+ button.append(title,detail);button.onclick=()=>openBooking(b.id);list.append(button)})
+}
+function fillDone(){const b=BOOKINGS.find(b=>b.id===rid);if(!b)return;
+ $("#dloc").textContent=b.location;$("#dspot").textContent=t("spot")+" "+b.spot;
+ $("#dcar").textContent=b.car_number;$("#dref").textContent=t("reference")+": #"+b.id;
+ $("#duntil").textContent=b.expires_at?new Date(b.expires_at*1000).toLocaleTimeString(lang,{hour:"2-digit",minute:"2-digit"}):t("legacy");
+ const remaining=b.expires_at?Math.max(0,Math.ceil((b.expires_at*1000-Date.now())/60000)):null;
+ $("#dleft").textContent=remaining===null?t("legacy"):remaining?t("left")(remaining):t("expired");
+ $("#cancel").disabled=remaining===0;$("#go").href=navUrl(b.location)
+}
+function openBooking(id){rid=id;$("#doneError").textContent="";fillDone();show("done");storage.set(activeKey,String(id))}
+async function refreshBookings(){if(!USER)return;const response=await fetch("/api/reservations",{cache:"no-store"});
+ if(!response.ok)throw new Error("Bookings unavailable");BOOKINGS=await response.json();$("#bookingsError").textContent="";renderBookings();
+ if(rid&&!BOOKINGS.some(b=>b.id===rid)&&$("#done").classList.contains("on")){rid=null;show("bookings")}else fillDone()
+}
 function render(){
  document.documentElement.lang=lang;
+ renderBookings();fillDone();
+ $("#fxNote").textContent=lang==="en"?(fx?`USD is approximate: KZT ÷ ${fx.kzt_per_usd}. NBK rate dated ${fx.date}. Payment in KZT.`:"USD estimate unavailable. Payment in KZT."):"";
  $$("[data-t]").forEach(e=>e.textContent=t(e.dataset.t));
  $$("[data-ph]").forEach(e=>e.placeholder=t(e.dataset.ph));
  $$(".lang").forEach(l=>{l.innerHTML=["ru","en"].map(x=>`<button class="${x==lang?"on":""}" data-l="${x}">${x.toUpperCase()}</button>`).join("")});
@@ -239,7 +304,7 @@ function render(){
   else if(!gmap){const b=document.createElement("button");b.className=c;b.style.left=p[0]+"%";b.style.top=p[1]+"%";b.innerHTML=h;b.onclick=()=>openSheet(l);$("#map").append(b)}});
  const pk=cur&&vis.includes(cur)?cur:vis[0];
  $("#peek").style.display=pk?"flex":"none";
- if(pk){const d=info(pk);$("#peek").innerHTML=`<span class="pbox"><img src="/static/images/parkgo-logo.jpg" alt=""></span><div><b>${pk}</b><span class="free" style="${d.n?"":"color:var(--rd)!important"}">● ${d.n?t("free")(d.n):t("full")}</span></div><span style="margin-left:auto;font-size:22px">›</span>`;$("#peek").onclick=()=>openSheet(pk)}
+ if(pk){const d=info(pk);$("#peek").innerHTML=`<span class="pbox"><img src="/static/images/parkgo-logo.jpg" alt="logo"></span><div><b>${pk}</b><span class="free" style="${d.n?"":"color:var(--rd)!important"}">● ${d.n?t("free")(d.n):t("full")}</span></div><span style="margin-left:auto;font-size:22px">›</span>`;$("#peek").onclick=()=>openSheet(pk)}
  if(cur)fillBook();
  $("#faqList").innerHTML=T[lang].faqs.map(([q,a])=>`<details class="card qa"><summary>${q}</summary><p>${a}</p></details>`).join("");
  if(tcat)setTicket();
@@ -247,39 +312,48 @@ function render(){
  if(USER)$("#acct b").textContent=USER;
 }
 function openSheet(l){cur=l;const d=info(l),nx=d.free[0];
- $("#sheet").innerHTML=`<div class="grab"></div><div class="shead"><div><div class="sub">${d.loc.toUpperCase()}</div><h2>${l}</h2></div><span class="pbox" style="width:56px;height:56px;font-size:28px"><img src="/static/images/parkgo-logo.jpg" alt=""></span></div>
+ $("#sheet").innerHTML=`<div class="grab"></div><div class="shead"><div><div class="sub">${d.loc.toUpperCase()}</div><h2>${l}</h2></div><span class="pbox" style="width:56px;height:56px;font-size:28px"><img src="/static/images/parkgo-logo.jpg" alt="logo"></span></div>
  <span class="pill">● ${d.n?t("free")(d.n):t("full")}</span><span style="color:var(--mut)">${t("of")} ${d.all.length}</span>
- <div class="grid"><div class="tile"><span>${t("total")}</span><b>${d.all.length}</b></div><div class="tile"><span>${t("rate")}</span><b>${d.price} ${t("h")}</b></div></div>
+ <div class="grid"><div class="tile"><span>${t("total")}</span><b>${d.all.length}</b></div><div class="tile"><span>${t("rate")}</span><b>${price(d.price)}</b></div></div>
+ <p style="font-size:12px;color:var(--mut)">${lang==="en"?(fx?`Approximate USD · NBK ${fx.date} · Payment in KZT`:"USD estimate unavailable · Payment in KZT"):""}</p>
  <div class="two"><button class="cta" id="sbook" ${d.n?"":"disabled"}>${t("book")}</button><a class="cta dark" target="_blank" rel="noopener" style="text-decoration:none" href="${navUrl(l)}">${t("go2")}</a></div>`;
  $("#sheet").classList.add("on");$("#shade").classList.add("on");
- $("#sbook").onclick=()=>{if(!USER){location.href="/login?next=/";return}closeSheet();fillBook();if(!$("#cname").value)$("#cname").value=NAME||"";show("book")};render()}
+ $("#sbook").onclick=()=>{if(!USER){location.href="/login?next=/";return}closeSheet();fillBook();pendingKey=null;$("#err").textContent="";if(!$("#cname").value)$("#cname").value=NAME||"";show("book")};render()}
 function closeSheet(){$("#sheet").classList.remove("on");$("#shade").classList.remove("on")}
 function fillBook(){if(!cur)return;const d=info(cur);
  $("#bname").textContent=cur;$("#bfree").textContent="● "+(d.n?t("free")(d.n):t("full"));
- $("#rloc").textContent=cur;$("#rspot").textContent=d.free[0]?d.free[0].name:"—";$("#rprice").textContent=d.price+" "+t("h");
+ $("#rloc").textContent=cur;$("#rspot").textContent=d.free[0]?d.free[0].name:"—";$("#rprice").textContent=price(d.price);
  $("#opts").innerHTML=[[15,"now"],[30,"m30"],[60,"h1"],[120,"h2"]].map(([m,k])=>`<button class="opt ${m==mins?"on":""}" data-m="${m}">${t(k)}</button>`).join("")}
-function qr(seed){let x=seed*2654435761>>>0,h="";for(let i=0;i<81;i++){x=(x*1664525+1013904223)>>>0;h+=`<i class="${x>>>28<8?"k":""}"></i>`}$("#qr").innerHTML=h}
 document.addEventListener("click",e=>{
  const sp=e.target.closest("[data-sup]");if(sp){const k=sp.dataset.sup;if(k=="faq")show("faq");else{tcat=k;setTicket();$("#terr").textContent="";show("ticket")}return}
  const g=e.target.closest("[data-go]");if(g){show(g.dataset.go);return}
- const l=e.target.closest("[data-l]");if(l){lang=l.dataset.l;localStorage.setItem("pg-lang",lang);render();if(cur&&$("#sheet").classList.contains("on"))openSheet(cur);return}
+ const l=e.target.closest("[data-l]");if(l){lang=l.dataset.l;storage.set("pg-lang",lang);render();if(cur&&$("#sheet").classList.contains("on"))openSheet(cur);return}
  const f=e.target.closest("[data-f]");if(f){filt=f.dataset.f;render();return}
  const o=e.target.closest("[data-m]");if(o){mins=+o.dataset.m;fillBook()}});
 $("#shade").onclick=closeSheet;$("#q").oninput=render;$("#bback").onclick=()=>show("home");
+let pendingKey=null;
+$("#plate").addEventListener("input",()=>pendingKey=null);
 $("#confirm").onclick=async()=>{
  if(busy)return;const d=info(cur),sp=d.free[0],name=$("#cname").value.trim(),car=$("#plate").value.trim();
  if(!sp){$("#err").textContent=t("full");return}if(!name||!car){$("#err").textContent=t("fill");return}
- busy=true;$("#err").textContent="";
- try{const fd=new URLSearchParams({customer_name:name,car_number:car}),r=await fetch("/book/"+sp.id,{method:"POST",headers:{"X-Requested-With":"fetch"},body:fd});
-  if(r.status==401){location.href="/login?next=/";return}if(!r.ok){$("#err").textContent=await r.text();return}
-  rid=(await r.json()).reservation_id;sp.free=false;
-  const u=new Date(Date.now()+mins*60000);
-  $("#dloc").textContent=cur;$("#dspot").textContent=(lang=="ru"?"Место ":"Spot ")+sp.name;
-  $("#duntil").textContent=u.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});
-  $("#dleft").textContent=t("left")(mins);$("#go").href=navUrl(cur);
-  qr(rid);render();show("done")}
- catch(e){$("#err").textContent="Network error"}finally{busy=false}};
-$("#cancel").onclick=async()=>{if(!rid)return;const r=await fetch("/cancel/"+rid,{method:"POST"});if(r.ok){location.reload()}};
+ busy=true;$("#confirm").disabled=true;$("#err").textContent="";
+ pendingKey??=globalThis.crypto?.randomUUID?.()||Date.now()+"-"+Math.random();
+ try{const fd=new URLSearchParams({customer_name:name,car_number:car,minutes:mins,request_key:pendingKey});
+  const r=await fetch("/book/"+sp.id,{method:"POST",headers:{"X-Requested-With":"fetch"},body:fd});
+  if(r.status==401){location.href="/login?next=/";return}
+  if(!r.ok){$("#err").textContent=await r.text();return}
+  rid=(await r.json()).reservation_id;storage.set(activeKey,String(rid));pendingKey=null;
+  await refreshBookings();sp.free=false;sp.status="Reserved";render();openBooking(rid);$("#plate").value="";
+ }catch(e){$("#err").textContent=t("network");refreshBookings().catch(()=>{})}
+ finally{busy=false;$("#confirm").disabled=false}
+};
+$("#cancel").onclick=async()=>{if(!rid||busy)return;busy=true;$("#cancel").disabled=true;
+ try{const response=await fetch("/cancel/"+rid,{method:"POST"});
+  if(!response.ok){$("#doneError").textContent=await response.text();return}
+  rid=null;await refreshBookings();await poll();show("bookings");
+ }catch{$("#doneError").textContent=t("network")}
+ finally{busy=false;$("#cancel").disabled=false}
+};
 function setTicket(){const m={booking:["bIssue","hintB"],payment:["pIssue","hintP"],chat:["contact","hintC"]}[tcat];$("#tTitle").textContent=t(m[0]);$("#tHint").textContent=t(m[1])}
 $("#tsend").onclick=async()=>{const msg=$("#tmsg").value.trim(),er=$("#terr");er.className="err";
  if(!msg){er.textContent=t("msgPh");return}
@@ -295,7 +369,12 @@ async function poll(){if(document.hidden)return;
   SPOTS.forEach(s=>(groups[s.loc]??=[]).push(s));
   render();if(cur&&$("#sheet").classList.contains("on"))openSheet(cur)}catch(e){}}
 setInterval(poll,4000);document.addEventListener("visibilitychange",poll);
-render();initMap();
+render();
+const restored=Number(storage.get(activeKey));if(BOOKINGS.some(b=>b.id===restored))openBooking(restored);
+async function loadFx(){try{const r=await fetch("/api/exchange-rate");if(r.ok){fx=await r.json();render();if(cur&&$("#sheet").classList.contains("on"))openSheet(cur)}}catch{}}
+loadFx();
+Promise.all([initMap(),document.fonts?.ready||Promise.resolve(),...Array.from(document.images).map(img=>img.complete?Promise.resolve():new Promise(resolve=>{img.addEventListener("load",resolve,{once:true});img.addEventListener("error",resolve,{once:true})}))]).then(()=>requestAnimationFrame(finishLoading)).catch(finishLoading);
+setInterval(()=>{fillDone();refreshBookings().catch(()=>{})},15000);
 </script>
 </body>
 </html>
