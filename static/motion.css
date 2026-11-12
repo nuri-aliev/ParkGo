@@ -4,7 +4,7 @@
 .scr { background: var(--bg); }
 
 .nav { isolation: isolate; }
-#support > .nav, #promos > .nav { position: relative; }
+#bookings > .nav, #support > .nav, #promos > .nav { position: relative; }
 .nav button { position: relative; z-index: 1; }
 .nav-indicator {
   position: absolute;
@@ -41,10 +41,10 @@
 #sheetContent { padding-top: 4px; }
 
 @media (prefers-reduced-motion: no-preference) {
-  :is(.cta, .btn, .back, .opt, .chip, .nav button, .tab, .booking-item, .contact, .li, .adm, .seg button, .lang button, .parking-bay) {
+  :is(.cta, .btn, .back, .opt, .chip, .tab, .booking-item, .contact, .li, .adm, .seg button, .lang button, .parking-bay) {
     transition: scale 180ms cubic-bezier(.2,.8,.2,1), background-color 160ms ease, color 160ms ease;
   }
-  :is(.cta, .btn, .back, .opt, .chip, .nav button, .tab, .booking-item, .contact, .li, .adm, .seg button, .lang button, .parking-bay):active:not(:disabled) {
+  :is(.cta, .btn, .back, .opt, .chip, .tab, .booking-item, .contact, .li, .adm, .seg button, .lang button, .parking-bay):active:not(:disabled) {
     scale: .97;
     transition-duration: 70ms;
   }

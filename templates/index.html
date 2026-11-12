@@ -1,9 +1,9 @@
 {% from "icons.html" import icon %}
 {% macro navigation(active) -%}
 <nav class="nav material">
-  <span class="nav-indicator" style="--nav-index:{{ {'home': 0, 'support': 2, 'promos': 3}[active] }}" aria-hidden="true"></span>
+  <span class="nav-indicator" style="--nav-index:{{ {'home': 0, 'bookings': 1, 'support': 2, 'promos': 3}[active] }}" aria-hidden="true"></span>
   <button class="{{ 'on' if active == 'home' }}" {% if active == 'home' %}aria-current="page"{% endif %} data-go="home">{{ icon('map') }}<span data-t="map"></span></button>
-  <button data-go="bookings">{{ icon('ticket') }}<span data-t="myBookings"></span></button>
+  <button class="{{ 'on' if active == 'bookings' }}" {% if active == 'bookings' %}aria-current="page"{% endif %} data-go="bookings">{{ icon('ticket') }}<span data-t="myBookings"></span></button>
   <button class="{{ 'on' if active == 'support' }}" {% if active == 'support' %}aria-current="page"{% endif %} data-go="support">{{ icon('support') }}<span data-t="support"></span></button>
   <button class="{{ 'on' if active == 'promos' }}" {% if active == 'promos' %}aria-current="page"{% endif %} data-go="promos">{{ icon('tag') }}<span data-t="promos"></span></button>
 </nav>
@@ -17,7 +17,7 @@
 <link rel="stylesheet" href="/static/parking.css">
 <link rel="stylesheet" href="/static/theme.css">
 <style>
-#loader{position:fixed;inset:0;z-index:100;background:#A7442F;display:grid;place-items:center;overflow:hidden;color:#FFFFFF;contain:paint}
+#loader{position:fixed;inset:0;z-index:100;background:#374151;display:grid;place-items:center;overflow:hidden;color:#FFFFFF;contain:paint}
 #loader[hidden]{display:none}
 .splash-logo{width:clamp(210px,68vw,360px);height:auto;overflow:visible;transform:rotate(-8deg);transform-origin:62% 52%}
 .splash-status{position:absolute;bottom:calc(40px + env(safe-area-inset-bottom));font-size:13px;letter-spacing:.03em;opacity:0;animation:splash-status 200ms ease 1600ms forwards}
@@ -37,7 +37,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--g);outline-offs
 .scr{position:absolute;inset:0;display:none;flex-direction:column}
 .scr.on{display:flex}
 .card{background:var(--surface);border-radius:22px;box-shadow:var(--shadow)}
-.cta{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:3.5rem;padding:.65rem 1rem;border-radius:16px;background:var(--g);color:var(--surface);font-weight:680;font-size:1rem;line-height:1.25;box-shadow:0 8px 20px #A7442F24}
+.cta{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:3.5rem;padding:.65rem 1rem;border-radius:16px;background:var(--g);color:var(--surface);font-weight:680;font-size:1rem;line-height:1.25;box-shadow:0 8px 20px #37415124}
 .cta.dark{background:var(--gl);color:var(--gd);box-shadow:none}
 .cta:disabled{opacity:.6}
 .lang{display:flex;background:#fff;border-radius:999px;padding:3px;box-shadow:0 4px 14px #0001}
@@ -73,7 +73,8 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--g);outline-offs
 .nav{position:absolute;z-index:4;left:0;right:0;bottom:0;display:flex;padding:4px 4px calc(5px + env(safe-area-inset-bottom));border-top:1px solid var(--ln)}
 .nav button{flex:1;min-width:0;min-height:3.35rem;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:.72rem;font-weight:650;color:var(--mut)}
 .nav button.on{color:var(--g)}
-#support>.nav,#promos>.nav{position:static}
+#bookings>.nav,#support>.nav,#promos>.nav{position:static}
+#bookings>.foot{padding-bottom:12px}
 /* sheet */
 .shade{position:absolute;inset:0;z-index:5;background:#28232066;display:none}
 .shade.on{display:block}
@@ -218,6 +219,7 @@ input.n{width:100%;height:60px;border-radius:16px;border:1px solid var(--ln);pad
   <div class="bar"><button class="back" data-go="home" aria-label="Back">{{ icon("back") }}</button><h3 data-t="myBookings"></h3><div class="lang"></div></div>
   <div class="body"><p class="err" id="bookingsError" role="alert"></p><div id="bookingList"></div></div>
   <div class="foot"><button class="cta" data-go="home" data-t="anotherCar"></button></div>
+  {{ navigation('bookings') }}
 </section>
 <!-- BOOK -->
 <section class="scr" id="book">
@@ -328,7 +330,7 @@ function finishLoading(){
 }
 setTimeout(finishLoading,6000);
 function pinIcon(n,sel,charging){
- const color=n===0?"#524945":n===1?"#8d6025":"#A7442F";
+ const color=n===0?"#524945":n===1?"#8d6025":"#374151";
  const mark=charging?PLUG_ICON.replace('class="icon"','x="12" y="11" width="23" height="23"').replace('stroke="currentColor"','stroke="white"'):`<text x="18" y="29" font-size="14" fill="white">P</text>`;
  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="78" height="58" viewBox="0 0 78 58" font-family="system-ui,sans-serif" font-weight="700"><path d="M29 39L39 52L49 39" fill="${color}" stroke="white" stroke-width="3"/><rect x="4" y="3" width="70" height="40" rx="20" fill="${color}" stroke="${sel?"#282320":"white"}" stroke-width="${sel?4:3}"/>${mark}<text x="48" y="31" font-size="21" fill="white" text-anchor="middle">${n}</text></svg>`;
  return "data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg);

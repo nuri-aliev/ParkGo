@@ -29,7 +29,7 @@
 .parking-bay:hover:not(:disabled){box-shadow:0 0 0 4px #39b54a18;background:#e1f9db}
 .parking-bay.unavailable{background:#fde6e5;border-color:#dfa0a3;cursor:not-allowed}
 .parking-bay.reserved{background:#fff2d7;border-color:#d3a343;color:#8b641b}
-.parking-bay.selected,.parking-bay.selected:hover{background:var(--g);border-color:var(--g);color:#fff;box-shadow:0 5px 15px #A7442F26}
+.parking-bay.selected,.parking-bay.selected:hover{background:var(--g);border-color:var(--g);color:#fff;box-shadow:0 5px 15px #37415126}
 .bay-symbol{height:106px;display:grid;place-items:center;width:100%}
 .bay-symbol img{height:106px;width:64px;object-fit:contain}
 .bay-state{font-size:11px;font-weight:600;min-height:27px;display:flex;align-items:center;justify-content:center;line-height:1.2;text-align:center;color:#42804a}

@@ -2,7 +2,7 @@
 (() => {
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
   const animations = new Map();
-  const ease = 'cubic-bezier(.2,.8,.2,1)';
+  const ease = 'cubic-bezier(.22,1,.36,1)';
 
   function play(element, frames, duration = 260, complete = () => {}, easing = ease) {
     if (!element) return;
@@ -31,7 +31,7 @@
 
   function reveal(element) {
     play(element, [
-      {opacity: 0, transform: 'translateY(12px)'},
+      {opacity: 0, transform: 'translateY(8px)'},
       {opacity: 1, transform: 'translateY(0)'}
     ]);
   }
@@ -39,12 +39,21 @@
   const screens = [...document.querySelectorAll('.scr')];
   screens.forEach(screen => { screen.inert = !screen.classList.contains('on'); });
   const depth = {home: 0, bookings: 0, support: 0, promos: 0, spaces: 1, faq: 1, ticket: 1, book: 2, done: 3};
-  let navIndex = 0;
-
   function navigate(previous, next) {
     if (!next || previous === next) return;
+    const tabs = ['home', 'bookings', 'support', 'promos'];
+    const fromTab = tabs.indexOf(previous?.id);
+    const toTab = tabs.indexOf(next.id);
+    const switchingTabs = fromTab !== -1 && toTab !== -1;
     const forward = (depth[next.id] ?? 0) >= (depth[previous?.id] ?? 0);
-    const distance = forward ? 28 : -28;
+    const distance = forward ? 8 : -8;
+    screens.forEach(screen => {
+      if (screen !== previous) {
+        animations.get(screen)?.cancel();
+        animations.delete(screen);
+        screen.classList.remove('motion-out');
+      }
+    });
     if (previous) previous.classList.add('motion-out');
     screens.forEach(screen => {
       screen.classList.toggle('on', screen === next);
@@ -52,23 +61,23 @@
     });
     next.classList.remove('motion-out');
     if (previous) {
-      play(previous, [
-        {opacity: 1, transform: 'translateX(0)'},
-        {opacity: 0, transform: `translateX(${-distance / 2}px)`}
-      ], 180, () => previous.classList.remove('motion-out'));
+      play(previous, switchingTabs
+        ? [{opacity: 1}, {opacity: 0}]
+        : [{opacity: 1, transform: 'translateX(0)'}, {opacity: 0, transform: `translateX(${-distance / 2}px)`}],
+      150, () => previous.classList.remove('motion-out'));
     }
-    play(next, [
-      {opacity: 0, transform: `translateX(${distance}px)`},
-      {opacity: 1, transform: 'translateX(0)'}
-    ], 300);
+    play(next, switchingTabs
+      ? [{opacity: 0}, {opacity: 1}]
+      : [{opacity: 0, transform: `translateX(${distance}px)`}, {opacity: 1, transform: 'translateX(0)'}], 250);
     const nav = next.querySelector('.nav');
     if (nav) {
       const index = [...nav.querySelectorAll('button')].findIndex(button => button.classList.contains('on'));
-      play(nav.querySelector('.nav-indicator'), [
-        {transform: `translateX(${navIndex * 100}%)`},
-        {transform: `translateX(${index * 100}%)`}
-      ], 300);
-      navIndex = index;
+      if (switchingTabs && index >= 0) {
+        play(nav.querySelector('.nav-indicator'), [
+          {transform: `translateX(${fromTab * 100}%)`},
+          {transform: `translateX(${index * 100}%)`}
+        ], 250);
+      }
     }
   }
 
@@ -101,7 +110,6 @@
     splashReady = true;
     clearTimeout(splashTimer);
     if (reduced.matches) { hideSplash(); return; }
-    // Let the name resolve before the zoom, without extending a slow load.
     const remaining = 360 - (performance.now() - splashStarted);
     if (remaining > 0) {
       splashTimer = setTimeout(finishLoading, remaining);
@@ -111,7 +119,7 @@
     // The intro has elapsed; discard it even if a background tab skipped frames.
     animations.get(logo)?.cancel();
     animations.delete(logo);
-    // The name accelerates towards the viewer, then dissolves into the map.
+    // Expand the mark into the map as the splash disappears.
     play(logo, [
       {opacity: 1, transform: 'rotate(-8deg) scale(1)'},
       {opacity: 1, transform: 'rotate(-8deg) scale(1.18)', offset: .25},
@@ -133,7 +141,7 @@
   function confirmBooking() {
     const badge = document.querySelector('#done .ok');
     const check = badge?.querySelector('path');
-    play(badge, [{transform: 'scale(.78)', opacity: 0}, {transform: 'scale(1)', opacity: 1}], 320);
+    play(badge, [{transform: 'translateY(8px) scale(.96)', opacity: 0}, {transform: 'translateY(0) scale(1)', opacity: 1}], 350);
     if (check) {
       const length = check.getTotalLength();
       check.style.strokeDasharray = length;
