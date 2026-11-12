@@ -1,5 +1,7 @@
 from datetime import datetime
+from decimal import Decimal, ROUND_HALF_UP
 from functools import wraps
+from io import BytesIO
 import os
 import re
 import secrets
@@ -15,8 +17,10 @@ import urllib.request
 import xml.etree.ElementTree as ET
 from zoneinfo import ZoneInfo
 
-from flask import (Flask, render_template, request, redirect, jsonify,
-                   session, url_for)
+import qrcode
+from qrcode.image.svg import SvgPathFillImage
+from flask import (Flask, abort, flash, render_template, request, redirect,
+                   jsonify, send_file, session, url_for)
 from werkzeug.security import generate_password_hash, check_password_hash
 
 BASE = os.path.dirname(os.path.abspath(__file__))
@@ -43,6 +47,9 @@ LOTS = {
 }
 
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+PROMO_CODE_RE = re.compile(r"[A-Z0-9][A-Z0-9-]{2,31}")
+PROMO_LIMITS = {"percent": 100, "fixed": 100000, "minutes": 240}
+EXPO_CHARGING = "https://edrive.kz/maps/?city=1&local=0"
 FAILS = {}  # защита входа от подбора пароля: {ключ: [время неудачных попыток]}
 
 
@@ -120,11 +127,22 @@ def init_db():
                 role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'admin')),
                 created_at TEXT NOT NULL
             )""")
-        for col in ("created_at TEXT", "user_id INTEGER", "expires_at INTEGER", "request_key TEXT"):  # миграция старой базы
-            try:
-                con.execute(f"ALTER TABLE reservations ADD COLUMN {col}")
-            except sqlite3.OperationalError:
-                pass
+        con.execute("""
+            CREATE TABLE IF NOT EXISTS promo_codes (
+                code TEXT PRIMARY KEY,
+                kind TEXT NOT NULL CHECK (kind IN ('percent', 'fixed', 'minutes')),
+                value INTEGER NOT NULL CHECK (value > 0),
+                expires_at INTEGER NOT NULL,
+                max_uses INTEGER NOT NULL CHECK (max_uses > 0),
+                uses INTEGER NOT NULL DEFAULT 0 CHECK (uses BETWEEN 0 AND max_uses)
+            )""")
+        con.execute("CREATE TABLE IF NOT EXISTS ev_charging_lots (location TEXT PRIMARY KEY)")
+        con.execute("BEGIN IMMEDIATE")
+        columns = {row[1] for row in con.execute("PRAGMA table_info(reservations)")}
+        for column in ("created_at TEXT", "user_id INTEGER", "expires_at INTEGER", "request_key TEXT",
+                       "promo_code TEXT", "promo_kind TEXT", "promo_value INTEGER", "promo_total INTEGER"):
+            if column.split()[0] not in columns:
+                con.execute(f"ALTER TABLE reservations ADD COLUMN {column}")
 
         con.execute("CREATE UNIQUE INDEX IF NOT EXISTS reservation_request ON reservations(user_id, request_key)")
 
@@ -315,10 +333,12 @@ def logout():
 # --- сайт и бронирование ---------------------------------------------------
 def spots_json(con):
     con.row_factory = sqlite3.Row
-    rows = con.execute("SELECT * FROM parking_spots ORDER BY id").fetchall()
+    rows = con.execute("""SELECT p.*, (ev.location IS NOT NULL) AS ev_charging
+        FROM parking_spots p LEFT JOIN ev_charging_lots ev USING (location) ORDER BY p.id""").fetchall()
     return [{"id": r["id"], "name": r["name"], "loc": r["location"],
-             "price": int(r["price"]), "status": r["status"],
-             "free": r["status"] == "Available"} for r in rows]
+             "price": r["price"], "status": r["status"], "free": r["status"] == "Available",
+             "ev_charging": bool(r["ev_charging"]),
+             "ev_nearby": r["location"] == "EXPO East"} for r in rows]
 
 
 @app.route("/")
@@ -328,7 +348,7 @@ def home():
     return render_template("index.html", spots=spots,
                            lots={k: v["xy"] for k, v in LOTS.items()},
                            lot_labels={k: v["label"] for k, v in LOTS.items()},
-                           user=current_user(), bookings=my_bookings())
+                           expo_charging=EXPO_CHARGING, user=current_user(), bookings=my_bookings())
 
 
 def my_bookings():
@@ -365,6 +385,55 @@ def api_reservations():
     response = jsonify(my_bookings())
     response.headers["Cache-Control"] = "no-store"
     return response
+
+
+@app.route("/reservations/<int:reservation_id>/qr.svg")
+def reservation_qr(reservation_id):
+    user = current_user()
+    if user is None:
+        abort(401)
+    with database() as con:
+        booking = con.execute("SELECT 1 FROM reservations WHERE id = ? AND user_id = ?",
+                              (reservation_id, user["id"])).fetchone()
+    if booking is None:
+        abort(404)
+    image = qrcode.make(f"ParkGo booking #{reservation_id}", image_factory=SvgPathFillImage)
+    data = BytesIO()
+    image.save(data)
+    data.seek(0)
+    response = send_file(data, mimetype="image/svg+xml")
+    response.headers["Cache-Control"] = "private, no-store"
+    return response
+
+
+def active_promo(con, code, timestamp):
+    if not PROMO_CODE_RE.fullmatch(code):
+        return None
+    return con.execute("""SELECT code, kind, value FROM promo_codes
+        WHERE code = ? AND expires_at > ? AND uses < max_uses""", (code, timestamp)).fetchone()
+
+
+@app.route("/api/promo/preview", methods=["POST"])
+def promo_preview():
+    if current_user() is None:
+        return jsonify(error="login"), 401
+    code = request.form.get("code", "").strip().upper()
+    with database() as con:
+        promo = active_promo(con, code, int(time.time()))
+    if promo is None:
+        return jsonify(error="promo_unavailable"), 404
+    return jsonify(code=promo[0], kind=promo[1], value=promo[2])
+
+
+def promo_total(price, minutes, kind, value):
+    # Store money as integer tiyn. Bonus minutes extend the reservation for free.
+    hourly = int((Decimal(str(price)) * 100).to_integral_value(rounding=ROUND_HALF_UP))
+    total = (hourly * minutes + 30) // 60
+    if kind == "percent":
+        return total - (total * value + 50) // 100
+    if kind == "fixed":
+        return max(0, total - value * 100)
+    return total
 
 
 FX_CACHE = {"checked": 0, "value": None}
@@ -423,7 +492,7 @@ def book(spot_id):
     if minutes not in (15, 30, 60, 120):
         return "Invalid duration.", 400
     request_key = request.form.get("request_key", "").strip()[:100] or None
-    expires_at = int(time.time()) + minutes * 60
+    code = request.form.get("promo_code", "").strip().upper()
 
     with database() as con:
         con.execute("PRAGMA foreign_keys = ON")
@@ -434,17 +503,28 @@ def book(spot_id):
             if previous:
                 return jsonify(ok=True, reservation_id=previous[0])
         spot = con.execute(
-            "SELECT status FROM parking_spots WHERE id = ?", (spot_id,)
+            "SELECT status, price FROM parking_spots WHERE id = ?", (spot_id,)
         ).fetchone()
         if spot is None:
             return "Parking spot not found.", 404
         if spot[0] != "Available":
             return "This parking spot is no longer available.", 409
 
+        timestamp = int(time.time())
+        kind = value = total = None
+        if code:
+            promo = active_promo(con, code, timestamp)
+            if promo is None:
+                return jsonify(error="promo_unavailable"), 422
+            _, kind, value = promo
+            total = promo_total(spot[1], minutes, kind, value)
+            con.execute("UPDATE promo_codes SET uses = uses + 1 WHERE code = ?", (code,))
+        expires_at = timestamp + (minutes + (value if kind == "minutes" else 0)) * 60
         cur = con.execute(
-            """INSERT INTO reservations (spot_id, customer_name, car_number, created_at, user_id, expires_at, request_key)
-               VALUES (?, ?, ?, ?, ?, ?, ?)""",
-            (spot_id, name, car, now(), user["id"], expires_at, request_key),
+            """INSERT INTO reservations (spot_id, customer_name, car_number, created_at, user_id,
+                   expires_at, request_key, promo_code, promo_kind, promo_value, promo_total)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (spot_id, name, car, now(), user["id"], expires_at, request_key, code or None, kind, value, total),
         )
         reservation_id = cur.lastrowid
         con.execute("UPDATE parking_spots SET status = 'Reserved' WHERE id = ?", (spot_id,))
@@ -512,6 +592,47 @@ def sensor():
 
 
 # --- админка ---------------------------------------------------------------
+@app.route("/admin/promos", methods=["POST"])
+@admin_required
+def create_promo():
+    code = request.form.get("code", "").strip().upper()
+    kind = request.form.get("kind", "")
+    try:
+        value, duration, max_uses = (int(request.form.get(field, ""))
+                                     for field in ("value", "duration_hours", "max_uses"))
+    except ValueError:
+        value = duration = max_uses = 0
+    if (not PROMO_CODE_RE.fullmatch(code) or not 1 <= value <= PROMO_LIMITS.get(kind, 0)
+            or not 1 <= duration <= 8760 or not 1 <= max_uses <= 100000):
+        flash("Check the promo code, benefit, validity and activation limit.", "error")
+    else:
+        with database() as con:
+            result = con.execute("""INSERT INTO promo_codes (code, kind, value, expires_at, max_uses)
+                VALUES (?, ?, ?, ?, ?) ON CONFLICT(code) DO NOTHING""",
+                                 (code, kind, value, int(time.time()) + duration * 3600, max_uses))
+        if result.rowcount:
+            flash(f"Promo code {code} created.", "success")
+        else:
+            flash("This promo code already exists.", "error")
+    return redirect(url_for("admin", pane="promos"), code=303)
+
+
+@app.route("/admin/charging", methods=["POST"])
+@admin_required
+def update_charging():
+    lot = request.form.get("lot", "")
+    enabled = request.form.get("enabled")
+    if lot not in LOTS or enabled not in ("0", "1"):
+        abort(400)
+    with database() as con:
+        if enabled == "1":
+            con.execute("INSERT OR IGNORE INTO ev_charging_lots (location) VALUES (?)", (lot,))
+        else:
+            con.execute("DELETE FROM ev_charging_lots WHERE location = ?", (lot,))
+    flash("Charging marker updated.", "success")
+    return redirect(url_for("admin", pane="park"), code=303)
+
+
 @app.route("/admin/report/<int:report_id>/resolve", methods=["POST"])
 @admin_required
 def resolve_report(report_id):
@@ -541,6 +662,8 @@ def admin():
             ORDER BY r.id DESC LIMIT 8
         """).fetchall()
         db_ok = con.execute("SELECT 1").fetchone() is not None
+        promos = con.execute("SELECT * FROM promo_codes ORDER BY rowid DESC").fetchall()
+        charging_lots = {row[0] for row in con.execute("SELECT location FROM ev_charging_lots")}
 
     free_by_loc = {}
     for s in spots:
@@ -568,7 +691,8 @@ def admin():
         "uptime": uptime,
     }
     return render_template("admin.html", stats=stats, spots=spots, reports=reports,
-                           activity=activity[:10], db_ok=db_ok)
+                           activity=activity[:10], db_ok=db_ok, promos=promos, lots=LOTS,
+                           charging_lots=charging_lots, timestamp=int(time.time()))
 
 
 init_db()

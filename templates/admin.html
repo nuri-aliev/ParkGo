@@ -1,35 +1,34 @@
+{% from "icons.html" import icon %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>ParkGo Administrator</title>
+<link rel="stylesheet" href="/static/theme.css">
 <style>
-:root{--g:#17964a;--gl:#e3f4e8;--ink:#16211b;--ink2:#243229;--mut:#7a867f;--bg:#f4f8f5;--ln:#e1e8e3;--am:#e8a62a;--rd:#dc4b4b;--f:"Inter","Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif}
 *{box-sizing:border-box}
-html,body{margin:0;background:#dfe6e1;font-family:var(--f);color:var(--ink)}
+html,body{margin:0;background:#eee9e4;font-family:var(--f);color:var(--ink)}
 button{font:inherit;cursor:pointer;border:0;background:none;color:inherit;padding:0}
-button:focus-visible,a:focus-visible{outline:3px solid var(--am);outline-offset:2px}
+button:focus-visible,a:focus-visible{outline:2px solid var(--g);outline-offset:2px}
 #app{max-width:430px;min-height:100dvh;margin:0 auto;background:var(--bg);box-shadow:0 0 40px #0002}
-.head{background:var(--ink);padding:calc(14px + env(safe-area-inset-top)) 14px 14px;position:sticky;top:0;z-index:5}
+.head{padding:calc(14px + env(safe-area-inset-top)) 14px 14px;position:sticky;top:0;z-index:5;border-bottom:1px solid var(--ln)}
 .row{display:flex;align-items:center;justify-content:space-between;gap:10px}
-.sq{width:48px;height:48px;border-radius:14px;background:var(--ink2);color:#fff;display:grid;place-items:center;font-size:24px;text-decoration:none;border:1px solid #ffffff1a}
-.brand{display:flex;align-items:center;gap:10px;color:#fff;font-weight:800;font-size:19px}
-.brand small{display:block;font-size:10px;letter-spacing:.14em;color:#8fa096;font-weight:700}
+.sq{width:44px;height:44px;border-radius:14px;background:var(--gl);color:var(--gd);display:grid;place-items:center;text-decoration:none}
+.brand{display:flex;align-items:center;gap:10px;color:var(--ink);font-weight:750;font-size:1.2rem}
+.brand small{display:block;font-size:.72rem;color:var(--mut);font-weight:650}
 .mark{width:42px;height:42px;border-radius:12px;background:var(--g);display:grid;place-items:center;font-size:22px;overflow:hidden;padding:0}
 .mark img{display:block;width:100%;height:100%;object-fit:cover;border-radius:inherit}
-.tabs{display:flex;gap:8px;overflow-x:auto;padding-top:14px;scrollbar-width:none}
-.tabs::-webkit-scrollbar{display:none}
-.tab{flex:none;min-width:84px;padding:10px 12px;border-radius:14px;background:var(--ink2);color:#aab6af;font-size:12px;font-weight:700;display:flex;flex-direction:column;align-items:center;gap:4px;position:relative}
-.tab.on{background:#215c3a;color:#7df0a8}
-.tab i{font-style:normal;font-size:18px}.tab i img{display:block;width:20px;height:20px;object-fit:contain;background:#fff;border-radius:6px;padding:2px}
-.badge{position:absolute;top:-4px;right:-2px;background:var(--rd);color:#fff;border-radius:999px;font-size:10px;min-width:18px;height:18px;display:grid;place-items:center;padding:0 5px}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;padding-top:14px}
+.tab{flex:none;min-height:44px;padding:8px 12px;border-radius:12px;background:var(--gl);color:var(--gd);font-size:.8rem;font-weight:650;display:flex;align-items:center;gap:4px;position:relative}
+.tab.on{background:var(--g);color:var(--surface)}
+.badge{background:var(--surface);color:var(--gd);border-radius:999px;font-size:10px;min-width:18px;height:18px;display:grid;place-items:center;padding:0 5px}
 .pane{display:none;padding:20px 14px 40px}
 .pane.on{display:block}
 h1{margin:0;font-size:30px;font-weight:500;letter-spacing:-.02em}
 .sub{color:var(--mut);font-size:14px;margin:4px 0 18px}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.card{background:#fff;border:1px solid var(--ln);border-radius:22px;padding:18px;box-shadow:0 6px 20px #16211b0d}
+.card{background:#fff;border:1px solid var(--ln);border-radius:22px;padding:18px;box-shadow:0 6px 20px #2823200d}
 .stat{position:relative;min-height:128px;display:flex;flex-direction:column;justify-content:flex-end}
 .stat b{font-size:34px;font-weight:600;letter-spacing:-.02em}
 .stat span{font-size:12px;color:var(--mut)}
@@ -48,36 +47,51 @@ h1{margin:0;font-size:30px;font-weight:500;letter-spacing:-.02em}
 .act .ai{flex:none;width:44px;height:44px;border-radius:14px;background:var(--gl);display:grid;place-items:center}
 .act div{flex:1;min-width:0}.act b{display:block;font-size:14px}.act span{display:block;font-size:12px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .act time{font-size:12px;color:var(--mut);flex:none}
-.btn{background:var(--ink);color:#fff;border-radius:12px;padding:10px 14px;font-size:13px;font-weight:700}
+.btn{background:var(--g);color:#fff;border-radius:12px;padding:10px 14px;min-height:44px;font-size:.875rem;font-weight:650}
 .btn.red{background:#fbe2e2;color:var(--rd)}
 .empty{color:var(--mut);text-align:center;padding:24px 0;font-size:14px}
 .msg{font-size:14px;margin:6px 0 10px;word-break:break-word}
+.admin-form{display:grid;gap:12px}
+.admin-form label{display:grid;gap:5px;font-size:.875rem;font-weight:650}
+.admin-form input,.admin-form select{width:100%;min-height:44px;padding:8px 10px;border:1px solid var(--ln);border-radius:10px;background:var(--surface);color:var(--ink);font:inherit;font-size:1rem}
+.admin-form input[name=code]{text-transform:uppercase}
+.admin-form .fields{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.notice{margin:12px 14px 0;padding:10px 14px;border-radius:12px;background:var(--gl);color:var(--gd)}
+.notice.error{background:#fae9ea;color:var(--rd)}
+.charging-row{align-items:center;font-size:.875rem}
+.charging-row p{margin:4px 0 0}
+.charging-row form{flex:none}
+.charging-row .btn{background:var(--gl);color:var(--gd)}
 </style>
 </head>
 <body>
 <div id="app">
-<header class="head">
+<header class="head material">
   <div class="row">
-    <a class="sq" href="/" aria-label="Back to site">‹</a>
-    <div class="brand"><span class="mark"><img src="/static/images/parkgo-logo.jpg" alt=""></span><div>ParkGo<small>ADMINISTRATOR</small></div></div>
-    <a class="sq" href="/logout" title="Log out" aria-label="Log out">⎋</a>
+    <a class="sq" href="/" aria-label="Back to site">{{ icon("back") }}</a>
+    <div class="brand"><span class="mark"><img src="/static/images/parkgo-mark.svg" alt=""></span><div>ParkGo<small>Administrator</small></div></div>
+    <a class="sq" href="/logout" title="Log out" aria-label="Log out">{{ icon("logout") }}</a>
   </div>
   <nav class="tabs">
-    <button class="tab on" data-p="dash"><i><img src="/static/images/home.png" alt=""></i>Dashboard</button>
-    <button class="tab" data-p="park"><i>P</i>Parking</button>
-    <button class="tab" data-p="sup"><i><img src="/static/images/support.png" alt=""></i>Support{% if stats.open_reports %}<span class="badge">{{ stats.open_reports }}</span>{% endif %}</button>
-    <button class="tab" data-p="log"><i>📄</i>Activity Log</button>
+    <button class="tab on" data-p="dash">Dashboard</button>
+    <button class="tab" data-p="park">Parking</button>
+    <button class="tab" data-p="sup">Support{% if stats.open_reports %}<span class="badge">{{ stats.open_reports }}</span>{% endif %}</button>
+    <button class="tab" data-p="promos">Promo codes</button>
+    <button class="tab" data-p="log">Activity log</button>
   </nav>
 </header>
+{% for category, message in get_flashed_messages(with_categories=true) %}
+<p class="notice {{ category }}" role="status">{{ message }}</p>
+{% endfor %}
 
 <section class="pane on" id="dash">
   <h1>System overview</h1>
   <p class="sub">Live status across the ParkGo network</p>
   <div class="grid">
-    <div class="card stat"><span class="ico i-g"><img class="logo-image" src="/static/images/parkgo-logo.jpg" alt=""></span><b>{{ stats.locations }}</b><span>Active locations</span></div>
-    <div class="card stat"><span class="ico i-a"><img src="/static/images/support.png" alt=""></span><b>{{ stats.open_reports }}</b><span>Open reports</span></div>
-    <div class="card stat"><span class="ico i-r">📉</span><b>{{ stats.unavailable }}</b><span>Unavailable</span></div>
-    <div class="card stat"><span class="ico i-n">🕒</span><b>{{ stats.uptime }}</b><span>Server uptime</span></div>
+    <div class="card stat"><span class="ico i-g"><img class="logo-image" src="/static/images/parkgo-mark.svg" alt=""></span><b>{{ stats.locations }}</b><span>Active locations</span></div>
+    <div class="card stat"><span class="ico i-a">{{ icon("support") }}</span><b>{{ stats.open_reports }}</b><span>Open reports</span></div>
+    <div class="card stat"><span class="ico i-r">{{ icon("stats") }}</span><b>{{ stats.unavailable }}</b><span>Unavailable</span></div>
+    <div class="card stat"><span class="ico i-n">{{ icon("clock") }}</span><b>{{ stats.uptime }}</b><span>Server uptime</span></div>
   </div>
   <div class="card sec">
     <div class="top"><div><h3>System health</h3><div class="hint">Updated just now</div></div><span class="pill {{ '' if db_ok else 'bad' }}">● {{ 'Operational' if db_ok else 'Problem' }}</span></div>
@@ -88,13 +102,29 @@ h1{margin:0;font-size:30px;font-weight:500;letter-spacing:-.02em}
   <div class="card sec">
     <div class="top"><div><h3>Recent administrator actions</h3><div class="hint">Latest changes in the system</div></div><button class="pill" style="background:none" data-p="log">View all</button></div>
     {% for a in activity[:3] %}
-    <div class="act"><span class="ai">📄</span><div><b>{{ a.title }}</b><span>{{ a.text }}</span></div><time>{{ a.ago }}</time></div>
+    <div class="act"><span class="ai">{{ icon("ticket") }}</span><div><b>{{ a.title }}</b><span>{{ a.text }}</span></div><time>{{ a.ago }}</time></div>
     {% else %}<div class="empty">No activity yet</div>{% endfor %}
   </div>
 </section>
 
 <section class="pane" id="park">
   <h1>Parking</h1>
+  <div class="card sec">
+    <h3>EV charging</h3>
+    <p class="sub">Mark verified charging on the parking lot.</p>
+    {% for lot, details in lots.items() %}
+    {% set enabled = lot in charging_lots %}
+    <div class="line charging-row">
+      <div><strong>{{ details.label.en }}</strong><p>{{ 'Charging marked' if enabled else 'No on-site marker' }}</p></div>
+      <form method="post" action="{{ url_for('update_charging') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="lot" value="{{ lot }}">
+        <input type="hidden" name="enabled" value="{{ '0' if enabled else '1' }}">
+        <button class="btn" aria-label="{{ 'Remove charging marker for' if enabled else 'Mark charging for' }} {{ details.label.en }}">{{ 'Remove marker' if enabled else 'Mark charging' }}</button>
+      </form>
+    </div>
+    {% endfor %}
+  </div>
   <p class="sub">All spots and their current status</p>
   {% for s in spots %}
   <div class="card sec">
@@ -124,12 +154,44 @@ h1{margin:0;font-size:30px;font-weight:500;letter-spacing:-.02em}
   {% else %}<div class="empty">No messages yet</div>{% endfor %}
 </section>
 
+<section class="pane" id="promos">
+  <h1>Promo codes</h1>
+  <form class="card sec admin-form" method="post" action="{{ url_for('create_promo') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>Code <input name="code" required minlength="3" maxlength="32" pattern="[A-Za-z0-9][A-Za-z0-9\-]{2,31}" autocomplete="off" placeholder="PARKGO20"></label>
+    <label>Benefit
+      <select name="kind" id="promoKind">
+        <option value="percent" data-limit="100" data-value-label="Discount (%)">Percentage discount</option>
+        <option value="fixed" data-limit="100000" data-value-label="Discount (₸)">Fixed discount</option>
+        <option value="minutes" data-limit="240" data-value-label="Extra minutes">Extra booking time</option>
+      </select>
+    </label>
+    <label><span id="promoValueLabel">Discount (%)</span><input type="number" name="value" id="promoValue" required min="1" max="100"></label>
+    <div class="fields">
+      <label>Valid for (hours) <input type="number" name="duration_hours" required min="1" max="8760"></label>
+      <label>Activation limit <input type="number" name="max_uses" required min="1" max="100000"></label>
+    </div>
+    <button class="btn">Create promo code</button>
+  </form>
+  {% for promo in promos %}
+  <article class="card sec">
+    <div class="top">
+      <div><h3>{{ promo.code }}</h3><div class="hint">{{ promo.value }} {{ {'percent': '% off', 'fixed': '₸ off', 'minutes': 'extra minutes'}[promo.kind] }}</div></div>
+      {% set status = 'Expired' if promo.expires_at <= timestamp else ('Limit reached' if promo.uses >= promo.max_uses else 'Active') %}
+      <span class="pill {{ '' if status == 'Active' else 'bad' }}">{{ status }}</span>
+    </div>
+    <div class="line"><span>Activations</span><b>{{ promo.uses }} / {{ promo.max_uses }}</b></div>
+    <div class="line"><span>Expires (Astana time)</span><time data-unix="{{ promo.expires_at }}"></time></div>
+  </article>
+  {% else %}<p class="empty">No promo codes yet</p>{% endfor %}
+</section>
+
 <section class="pane" id="log">
   <h1>Activity Log</h1>
   <p class="sub">Bookings and support messages</p>
   <div class="card">
     {% for a in activity %}
-    <div class="act" {% if loop.first %}style="border-top:0"{% endif %}><span class="ai">📄</span><div><b>{{ a.title }}</b><span>{{ a.text }}</span></div><time>{{ a.ago }}</time></div>
+    <div class="act" {% if loop.first %}style="border-top:0"{% endif %}><span class="ai">{{ icon("ticket") }}</span><div><b>{{ a.title }}</b><span>{{ a.text }}</span></div><time>{{ a.ago }}</time></div>
     {% else %}<div class="empty">No activity yet</div>{% endfor %}
   </div>
 </section>
@@ -137,12 +199,33 @@ h1{margin:0;font-size:30px;font-weight:500;letter-spacing:-.02em}
 
 <script>
 const CSRF_TOKEN={{ csrf_token()|tojson }};
-function go(p){document.querySelectorAll(".pane").forEach(e=>e.classList.toggle("on",e.id==p));document.querySelectorAll(".tab").forEach(e=>e.classList.toggle("on",e.dataset.p==p));sessionStorage.setItem("adm",p);scrollTo(0,0)}
+function go(p){
+ const panes=[...document.querySelectorAll(".pane")];
+ if(!panes.some(e=>e.id===p))p="dash";
+ panes.forEach(e=>e.classList.toggle("on",e.id===p));
+ document.querySelectorAll(".tab").forEach(e=>{
+  const active=e.dataset.p===p;e.classList.toggle("on",active);
+  if(active)e.setAttribute("aria-current","page");
+  else e.removeAttribute("aria-current");
+ });
+ sessionStorage.setItem("adm",p);scrollTo(0,0);
+}
 document.addEventListener("click",async e=>{
  const p=e.target.closest("[data-p]");if(p){go(p.dataset.p);return}
  const r=e.target.closest("[data-release]");if(r){if(!confirm("Release this spot?"))return;await fetch("/cancel/"+r.dataset.release,{method:"POST",headers:{"X-CSRF-Token":CSRF_TOKEN}});location.reload();return}
  const s=e.target.closest("[data-resolve]");if(s){await fetch("/admin/report/"+s.dataset.resolve+"/resolve",{method:"POST",headers:{"X-CSRF-Token":CSRF_TOKEN}});location.reload()}});
-go(sessionStorage.getItem("adm")||"dash");
+const kind=document.querySelector("#promoKind");
+kind.onchange=()=>{
+ const option=kind.selectedOptions[0];
+ document.querySelector("#promoValueLabel").textContent=option.dataset.valueLabel;
+ document.querySelector("#promoValue").max=option.dataset.limit;
+};
+const astana=new Intl.DateTimeFormat("en-GB",{dateStyle:"medium",timeStyle:"short",timeZone:"Asia/Almaty"});
+document.querySelectorAll("time[data-unix]").forEach(el=>{
+ const date=new Date(Number(el.dataset.unix)*1000);
+ el.dateTime=date.toISOString();el.textContent=astana.format(date);
+});
+go(new URLSearchParams(location.search).get("pane")||sessionStorage.getItem("adm")||"dash");
 </script>
 </body>
 </html>

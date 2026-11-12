@@ -1,0 +1,47 @@
+:root {
+  color-scheme: light;
+  --g: #A7442F;
+  --gd: #873624;
+  --gl: #f8ebe7;
+  --surface: #FFFFFF;
+  --ink: #282320;
+  --ink2: #403733;
+  --mut: #685d57;
+  --bg: #f8f6f4;
+  --ln: #e9e1db;
+  --am: #8d6025;
+  --rd: #a62c37;
+  --ok: #326044;
+  --f: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --shadow: 0 8px 28px rgb(40 35 32 / 8%);
+}
+
+.icon {
+  display: inline-block;
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  vertical-align: middle;
+}
+.mark .icon, .pbox .icon { width: 66%; height: 66%; }
+
+:where(button, a, input, select, textarea, summary):focus-visible {
+  outline: 2px solid var(--g);
+  outline-offset: 3px;
+}
+:where(button, a) { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+:where(.cta, .tab, .chip, .opt, .btn, .nav button):active:not(:disabled) { filter: brightness(.91); }
+
+.material {
+  background: var(--surface);
+  box-shadow: 0 4px 24px rgb(40 35 32 / 7%);
+}
+@supports (backdrop-filter: blur(1px)) {
+  .material {
+    background: rgb(255 255 255 / 90%);
+    backdrop-filter: blur(20px) saturate(145%);
+  }
+}
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .material { background: var(--surface); backdrop-filter: none; }
+}

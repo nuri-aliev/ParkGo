@@ -1,3 +1,12 @@
+{% from "icons.html" import icon %}
+{% macro navigation(active) -%}
+<nav class="nav material">
+  <button class="{{ 'on' if active == 'home' }}" {% if active == 'home' %}aria-current="page"{% endif %} data-go="home">{{ icon('map') }}<span data-t="map"></span></button>
+  <button data-go="bookings">{{ icon('ticket') }}<span data-t="myBookings"></span></button>
+  <button class="{{ 'on' if active == 'support' }}" {% if active == 'support' %}aria-current="page"{% endif %} data-go="support">{{ icon('support') }}<span data-t="support"></span></button>
+  <button class="{{ 'on' if active == 'promos' }}" {% if active == 'promos' %}aria-current="page"{% endif %} data-go="promos">{{ icon('tag') }}<span data-t="promos"></span></button>
+</nav>
+{%- endmacro %}
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -5,10 +14,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>ParkGo</title>
 <link rel="stylesheet" href="/static/parking.css">
+<link rel="stylesheet" href="/static/theme.css">
 <style>
-#loader{position:fixed;inset:0;z-index:100;background:#f4f8f5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;font-family:system-ui;color:#0f7a3a}
+#loader{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;font-family:system-ui;color:var(--gd)}
 #loader[hidden]{display:none}
-.spinner{width:44px;height:44px;border:4px solid #d5e8db;border-top-color:#17964a;border-radius:50%;animation:spin 1s linear infinite}
+.spinner{width:44px;height:44px;border:4px solid var(--gl);border-top-color:var(--g);border-radius:50%;animation:spin 1s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 @media(prefers-reduced-motion:reduce){.spinner{animation:none}}
 .booking-item{display:block;width:100%;padding:18px;margin-bottom:12px;text-align:left;line-height:1.6}
@@ -16,30 +26,29 @@
 #done>.cta{flex-shrink:0} #done{padding-bottom:24px}
 #fxNote{font-size:12px;line-height:1.5;color:var(--mut)}
 
-:root{--g:#17964a;--gd:#0f7a3a;--gl:#e3f4e8;--ink:#16211b;--mut:#7a867f;--bg:#f4f8f5;--ln:#e1e8e3;--am:#e8a62a;--rd:#dc4b4b;--f:"Inter","Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif}
 *{box-sizing:border-box}
-html,body{margin:0;height:100%;background:#dfe6e1;font-family:var(--f);color:var(--ink)}
+html,body{margin:0;height:100%;background:#eee9e4;font-family:var(--f);color:var(--ink)}
 button{font:inherit;cursor:pointer;border:0;background:none;color:inherit;padding:0}
-button:focus-visible,input:focus-visible{outline:3px solid var(--am);outline-offset:2px}
+button:focus-visible,input:focus-visible{outline:2px solid var(--g);outline-offset:2px}
 #app{position:relative;max-width:430px;height:100dvh;margin:0 auto;background:var(--bg);overflow:hidden;box-shadow:0 0 40px #0002}
 .scr{position:absolute;inset:0;display:none;flex-direction:column}
 .scr.on{display:flex}
-.card{background:#fff;border-radius:22px;box-shadow:0 6px 24px #16211b14}
-.cta{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:56px;border-radius:18px;background:var(--g);color:#fff;font-weight:800;font-size:15px;text-transform:uppercase;box-shadow:0 8px 20px #17964a44}
-.cta.dark{background:var(--ink);box-shadow:none}
+.card{background:var(--surface);border-radius:22px;box-shadow:var(--shadow)}
+.cta{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:3.5rem;padding:.65rem 1rem;border-radius:16px;background:var(--g);color:var(--surface);font-weight:680;font-size:1rem;line-height:1.25;box-shadow:0 8px 20px #A7442F24}
+.cta.dark{background:var(--gl);color:var(--gd);box-shadow:none}
 .cta:disabled{opacity:.6}
 .lang{display:flex;background:#fff;border-radius:999px;padding:3px;box-shadow:0 4px 14px #0001}
 .lang button{padding:7px 12px;border-radius:999px;font-size:12px;font-weight:800;color:var(--mut)}
 .lang button.on{background:var(--g);color:#fff}
 /* map */
-.map{position:absolute;inset:0;background:#eef3ee;background-image:linear-gradient(#dfe7e0 1px,transparent 1px),linear-gradient(90deg,#dfe7e0 1px,transparent 1px);background-size:44px 44px;overflow:hidden}
+.map{position:absolute;inset:0;background:#eeeae6;background-image:linear-gradient(#e2dcd6 1px,transparent 1px),linear-gradient(90deg,#e2dcd6 1px,transparent 1px);background-size:44px 44px;overflow:hidden}
 .road{position:absolute;background:#fff;box-shadow:0 0 0 6px #fff8}
 .road.y{background:#fdf0c8;box-shadow:0 0 0 2px #f2dc98}
 .park{position:absolute;border-radius:50%;background:#cfe8b8;box-shadow:inset 0 0 0 14px #d9eec6}
-.mlabel{position:absolute;font-size:12px;font-weight:700;color:#5b6a60}
+.mlabel{position:absolute;font-size:12px;font-weight:700;color:#635a53}
 .pin{position:absolute;transform:translate(-50%,-50%);height:40px;padding:0 14px;border-radius:20px 20px 20px 6px;color:#fff;font-weight:800;font-size:18px;box-shadow:0 0 0 3px #fff,0 6px 14px #0003;display:flex;align-items:center;gap:5px}
 .pin small{font-size:12px;opacity:.75}
-.pin.ok{background:var(--g)}.pin.mid{background:var(--am)}.pin.no{background:var(--rd)}
+.pin.ok{background:var(--g)}.pin.mid{background:var(--am)}.pin.no{background:#524945}
 .pin.sel{outline:3px solid var(--ink);outline-offset:3px}
 .me{position:absolute;left:50%;top:88%;width:16px;height:16px;border-radius:50%;background:#2f6bff;box-shadow:0 0 0 5px #fff,0 0 0 14px #2f6bff2e}
 .top{position:relative;z-index:3;padding:calc(14px + env(safe-area-inset-top)) 14px 0}
@@ -56,17 +65,18 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--am);outline-off
 .chip.on{background:var(--g);color:#fff;border-color:var(--g)}
 .peek{position:absolute;z-index:3;left:14px;right:14px;bottom:86px;display:flex;align-items:center;gap:14px;padding:14px;text-align:left}
 .pbox{flex:none;width:44px;height:44px;border-radius:14px;background:var(--g);color:#fff;display:grid;place-items:center;font-weight:800;font-size:22px;overflow:hidden;padding:0}
-.peek b{display:block;font-size:17px}.peek span{font-size:13px;color:var(--mut)}
+.peek-info{flex:1;min-width:0}.peek-info .ev-label{display:flex;margin-top:4px}.peek b{display:block;font-size:17px}.peek span{font-size:13px;color:var(--mut)}
 .free{color:var(--g)!important;font-weight:700}
-.nav{position:absolute;z-index:4;left:0;right:0;bottom:0;display:flex;background:#fff;padding:12px 0 calc(14px + env(safe-area-inset-bottom));border-top:1px solid var(--ln)}
-.nav button{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:700;color:var(--mut)}
+.nav{position:absolute;z-index:4;left:0;right:0;bottom:0;display:flex;padding:4px 4px calc(5px + env(safe-area-inset-bottom));border-top:1px solid var(--ln)}
+.nav button{flex:1;min-width:0;min-height:3.35rem;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:.72rem;font-weight:650;color:var(--mut)}
 .nav button.on{color:var(--g)}
+#support>.nav,#promos>.nav{position:static}
 /* sheet */
-.shade{position:absolute;inset:0;z-index:5;background:#16211b66;display:none}
+.shade{position:absolute;inset:0;z-index:5;background:#28232066;display:none}
 .shade.on{display:block}
-.sheet{position:absolute;z-index:6;left:0;right:0;bottom:0;background:#fff;border-radius:28px 28px 0 0;padding:12px 20px calc(22px + env(safe-area-inset-bottom));transform:translateY(105%);transition:transform .25s}
+.sheet{position:absolute;z-index:6;left:0;right:0;bottom:0;max-height:90%;overflow-y:auto;border-radius:28px 28px 0 0;padding:16px 20px calc(22px + env(safe-area-inset-bottom));transform:translateY(105%);transition:transform .24s cubic-bezier(.2,.75,.25,1)}
 .sheet.on{transform:none}
-.grab{width:44px;height:5px;border-radius:3px;background:#d5dcd7;margin:0 auto 16px}
+@media(prefers-reduced-motion:reduce){.sheet{transition:none}}
 .sheet h2{margin:2px 0 0;font-size:30px;font-weight:500;letter-spacing:-.02em}
 .shead{display:flex;justify-content:space-between;align-items:start}
 .sub{color:var(--g);font-weight:800;font-size:12px;letter-spacing:.06em}
@@ -77,8 +87,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--am);outline-off
 .two{display:flex;gap:12px}
 /* book */
 .bar{display:flex;align-items:center;gap:12px;padding:calc(14px + env(safe-area-inset-top)) 14px 10px;background:#fff}
-.back{width:48px;height:48px;border-radius:14px;background:var(--bg);font-size:26px}
-.bar h3{flex:1;text-align:center;margin:0;font-weight:500;font-size:18px}
+.back{flex:none;width:44px;height:44px;border-radius:14px;background:var(--bg);display:grid;place-items:center}
+.bar h3{flex:1;text-align:center;margin:0;font-weight:650;font-size:1rem;line-height:1.2}
 .body{flex:1;overflow-y:auto;padding:16px}
 .body h4{margin:20px 0 10px;font-size:17px}
 .opts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -91,38 +101,58 @@ input.n{width:100%;height:60px;border-radius:16px;border:1px solid var(--ln);pad
 .rows{background:#fff;border-radius:18px;padding:4px 18px;margin-top:20px}
 .rows div{display:flex;justify-content:space-between;padding:15px 0;border-bottom:1px solid var(--ln);color:var(--mut)}
 .rows div:last-child{border:0}.rows b{color:var(--ink)}
-.note{background:#e9f1ec;color:var(--mut);border-radius:14px;padding:14px;font-size:13px;margin-top:16px}
+.note{background:var(--gl);color:var(--mut);border-radius:14px;padding:14px;font-size:13px;margin-top:16px}
 .err{color:var(--rd);font-weight:700;margin:12px 2px 0;min-height:20px;font-size:14px}
 .foot{padding:12px 16px calc(16px + env(safe-area-inset-bottom))}
 /* done */
 .done{align-items:center;text-align:center;padding:calc(40px + env(safe-area-inset-top)) 20px 0;overflow-y:auto}
-.ok{width:104px;height:104px;border-radius:50%;background:var(--g);display:grid;place-items:center;box-shadow:0 12px 30px #17964a55}
+.done>.ok{flex:none;width:52px;height:52px;border-radius:50%;background:var(--gl);color:var(--g);display:grid;place-items:center}
+.done>.ok .icon{width:1.7rem;height:1.7rem}
 .done h1{font-weight:500;font-size:32px;margin:6px 0 4px}
 .ticket{width:100%;text-align:left;padding:22px;margin-top:22px}
 .ticket small{color:var(--mut);font-size:15px}.ticket h2{margin:4px 0 0;font-size:26px}
 .until{display:flex;justify-content:space-between;align-items:center;background:var(--gl);border-radius:16px;padding:18px;margin:16px 0;color:var(--mut);font-size:14px}
 .until b{font-size:26px;color:var(--gd)}
-.qr{display:grid;grid-template-columns:repeat(9,1fr);gap:4px;width:170px;margin:6px auto;padding:14px;border:1px solid var(--ln);border-radius:16px}
-.qr i{aspect-ratio:1;border-radius:2px;background:transparent}.qr i.k{background:var(--ink)}
+.qr{margin:12px 0 0;text-align:center;color:var(--mut);font-size:.875rem}
+.qr img{display:block;width:min(100%,182px);height:auto;aspect-ratio:1;margin:0 auto 8px;border:1px solid var(--ln);border-radius:12px;background:#fff}
 .timer{width:100%;margin:16px 0;padding:16px;border-radius:16px;background:var(--gl);color:var(--gd);font-size:14px}
 .cancel{color:var(--rd);font-weight:800;padding:16px}
 /* support */
 .shead2{background:var(--ink);color:#fff;text-align:center;padding:calc(50px + env(safe-area-inset-top)) 20px 28px}
-.shead2 h1{font-weight:500;font-size:30px;margin:14px 0 6px}.shead2 p{margin:0;color:#aab6af}
+.shead2 h1{font-weight:500;font-size:30px;margin:14px 0 6px}.shead2 p{margin:0;color:#e5dcd6}
 .sicon{display:inline-grid;place-items:center;width:72px;height:72px;border-radius:22px;background:#fff;font-size:30px}
-.sicon img{width:48px;height:48px;object-fit:contain}
+.sicon{color:var(--g)}
+.sicon .icon{width:32px;height:32px}
 .list{padding:0;margin:0;list-style:none;overflow:hidden}
 .list li{display:flex;justify-content:space-between;align-items:center;padding:18px 20px;border-bottom:1px solid var(--ln)}
 .list li:last-child{border:0}.list b{display:block}.list span{font-size:13px;color:var(--mut)}
 .contact{display:flex;justify-content:space-between;align-items:center;background:var(--gl);border-radius:22px;padding:20px;margin-top:16px}
 .on-badge{background:var(--g);color:#fff;font-size:12px;font-weight:800;padding:6px 12px;border-radius:999px}
 .map{bottom:calc(68px + env(safe-area-inset-bottom))}
-.adm{width:44px;height:44px;border-radius:14px;background:var(--ink);display:grid;place-items:center;text-decoration:none;font-size:20px;box-shadow:0 4px 14px #0002}
+.adm{width:44px;height:44px;border-radius:14px;background:var(--surface);color:var(--g);display:grid;place-items:center;text-decoration:none;box-shadow:var(--shadow)}
 .list li{padding:0}.li{display:flex;width:100%;justify-content:space-between;align-items:center;padding:18px 20px;text-align:left;font-size:20px;color:var(--mut)}.li div{font-size:16px;color:var(--ink)}
 .contact{border:0;font:inherit;cursor:pointer}
 .qa{margin-bottom:12px;padding:0}.qa summary{padding:18px;font-weight:700;cursor:pointer}.qa p{margin:0;padding:0 18px 18px;color:var(--mut);font-size:14px;line-height:1.5}
 .ta{width:100%;min-height:150px;border:1px solid var(--ln);border-radius:16px;padding:14px;font:inherit;font-size:16px;resize:vertical;background:#fff;color:var(--ink)}
 .err.okmsg{color:var(--g)}
+.search:focus-within{outline:2px solid var(--g);outline-offset:2px}
+.promo-card{padding:20px}
+.promo-card label{display:block;margin-bottom:8px;font-weight:650}
+.promo-card input{font-size:1rem;text-transform:uppercase}
+.promo-card .cta{margin-top:12px}
+.promo-hint{margin:0 0 16px;color:var(--mut);line-height:1.5}
+.promo-feedback{margin:12px 0 0;line-height:1.5;color:var(--ok)}
+.promo-feedback:empty{display:none}
+.promo-feedback.error{color:var(--rd)}
+.promo-link{display:inline-flex;align-items:center;gap:6px;min-height:44px;color:var(--g);font-weight:650}
+.promo-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px}
+.promo-row strong{overflow-wrap:anywhere;font-size:.88rem}
+.rows .booking-estimate[hidden],.promo-link[hidden]{display:none}
+.ev-label{display:inline-flex;align-items:center;gap:5px;color:var(--gd);font-size:.82rem;font-weight:650}
+.ev-label .icon,.pin .icon{width:1rem;height:1rem}
+.peek .ev-label{color:var(--gd)}
+.ev-details{margin:-2px 0 12px;color:var(--mut);font-size:.82rem;line-height:1.4}
+.ev-details a{color:var(--gd)}
 </style>
 </head>
 <body>
@@ -141,16 +171,16 @@ input.n{width:100%;height:60px;border-radius:16px;border:1px solid var(--ln);pad
     <div class="me"></div>
   </div>
   <div class="top">
-    <div class="brandrow"><div class="brand"><span class="mark"><img src="/static/images/parkgo-logo.jpg" alt="logotype"></span>ParkGo</div><div style="display:flex;gap:8px;align-items:center">{% if user and user.role == "admin" %}<a class="adm" href="/admin" aria-label="System overview" title="System overview">📊</a>{% endif %}<div class="lang"></div></div></div>
-    <label class="search"><img class="ui-icon" src="/static/images/search.png" alt="search"><input id="q" data-ph="search" autocomplete="off"></label>
+    <div class="brandrow"><div class="brand"><span class="mark"><img src="/static/images/parkgo-mark.svg" alt=""></span>ParkGo</div><div style="display:flex;gap:8px;align-items:center">{% if user and user.role == "admin" %}<a class="adm" href="/admin" aria-label="System overview" title="System overview">{{ icon("stats") }}</a>{% endif %}<div class="lang"></div></div></div>
+    <label class="search">{{ icon("search") }}<input id="q" data-ph="search" autocomplete="off"></label>
     <div class="chips" id="chips"></div>
   </div>
   <button class="peek card" id="peek"></button>
-  <nav class="nav"><button class="on" data-go="home"><img class="ui-icon" src="/static/images/home.png" alt="home"><span data-t="map"></span></button><button data-go="bookings"><span data-t="myBookings"></span></button><button data-go="support"><img class="ui-icon" src="/static/images/support.png" alt="support"><span data-t="support"></span></button></nav>
+  {{ navigation('home') }}
   <div class="shade" id="shade"></div>
-  <div class="sheet" id="sheet"></div>
+  <div class="sheet material" id="sheet" inert></div>
   <aside class="route-panel" id="routePanel" hidden>
-    <div class="route-heading"><button class="back" id="closeRoute" aria-label="Назад / Back">‹</button><div><h2 data-t="routeTitle"></h2><p id="routeDestination"></p></div></div>
+    <div class="route-heading"><button class="back" id="closeRoute" aria-label="Назад / Back">{{ icon("back") }}</button><div><h2 data-t="routeTitle"></h2><p id="routeDestination"></p></div></div>
     <div class="route-actions"><button id="locateRoute" data-t="routeLocate"></button><button id="pickRoute" data-t="routePick"></button></div>
     <p id="routeStatus" role="status" aria-live="polite"></p>
     <a id="routeExternal" target="_blank" rel="noopener" data-t="routeExternal"></a>
@@ -158,37 +188,38 @@ input.n{width:100%;height:60px;border-radius:16px;border:1px solid var(--ln);pad
 </section>
 
 <section class="scr" id="spaces">
-  <div class="spaces-toolbar"><button class="back" data-go="home" aria-label="Назад / Back">‹</button><div class="brand"><span class="mark"><img src="/static/images/parkgo-logo.jpg" alt=""></span>ParkGo</div><div class="lang"></div></div>
+  <div class="spaces-toolbar"><button class="back" data-go="home" aria-label="Назад / Back">{{ icon("back") }}</button><div class="brand"><span class="mark"><img src="/static/images/parkgo-mark.svg" alt=""></span>ParkGo</div><div class="lang"></div></div>
   <div class="spaces-content">
     <div class="spaces-heading"><div><h1 data-t="chooseSpot"></h1><p data-t="chooseSpotHint"></p></div>
       <div class="space-legend"><span><i></i><span data-t="available"></span></span><span><i class="legend-busy"></i><span data-t="occupied"></span></span><span><i class="legend-reserved"></i><span data-t="reserved"></span></span><span><i class="legend-selected"></i><span data-t="selectedFree"></span></span></div>
     </div>
-    <div class="spaces-context"><div><b id="spacesLotHeading"></b><span id="spacesCount" role="status" aria-live="polite"></span></div><p id="spacesBreakdown"></p></div>
+    <div class="spaces-context"><div><b id="spacesLotHeading"></b><span id="spacesCount" role="status" aria-live="polite"></span><span id="spacesCharging"></span></div><p id="spacesBreakdown"></p></div>
     <p id="selectionNotice" role="status" aria-live="polite"></p>
     <div class="spaces-layout">
       <div class="parking-plan"><div id="parkingDiagram"></div><p class="plan-caption" data-t="schemeHint"></p></div>
-      <aside class="spot-detail"><h2 id="selectedSpotName" aria-live="polite"></h2><span id="selectedSpotStatus" class="spot-status" data-t="selectedFree" hidden></span><p id="spacesLot"></p><p id="selectionHint" data-t="selectionHint"></p><p class="spot-price" id="spacesPrice"></p><button class="cta" id="selectSpot" disabled><span data-t="book"></span><span aria-hidden="true">→</span></button><button class="spot-route" id="spacesRoute" data-t="routeTitle"></button></aside>
+      <aside class="spot-detail"><h2 id="selectedSpotName" aria-live="polite"></h2><span id="selectedSpotStatus" class="spot-status" data-t="selectedFree" hidden></span><p id="spacesLot"></p><p id="selectionHint" data-t="selectionHint"></p><p class="spot-price" id="spacesPrice"></p><button class="cta" id="selectSpot" disabled><span data-t="book"></span>{{ icon("arrow") }}</button><button class="spot-route" id="spacesRoute" data-t="routeTitle"></button></aside>
     </div>
   </div>
 </section>
 
 <section class="scr" id="bookings">
-  <div class="bar"><button class="back" data-go="home" aria-label="Back">‹</button><h3 data-t="myBookings"></h3><div class="lang"></div></div>
+  <div class="bar"><button class="back" data-go="home" aria-label="Back">{{ icon("back") }}</button><h3 data-t="myBookings"></h3><div class="lang"></div></div>
   <div class="body"><p class="err" id="bookingsError" role="alert"></p><div id="bookingList"></div></div>
   <div class="foot"><button class="cta" data-go="home" data-t="anotherCar"></button></div>
 </section>
 <!-- BOOK -->
 <section class="scr" id="book">
-  <div class="bar"><button class="back" id="bback" aria-label="Back">‹</button><h3 data-t="bookTitle"></h3><div class="lang"></div></div>
+  <div class="bar"><button class="back" id="bback" aria-label="Back">{{ icon("back") }}</button><h3 data-t="bookTitle"></h3><div class="lang"></div></div>
   <div class="body">
-    <div class="card" style="display:flex;gap:14px;align-items:center;padding:18px"><span class="pbox" style="width:56px;height:56px;font-size:28px"><img src="/static/images/parkgo-logo.jpg" alt="logo"></span><div><small style="color:var(--mut)" data-t="chosen"></small><b id="bname" style="display:block;font-size:22px"></b><span class="free" id="bfree"></span></div></div>
+    <div class="card" style="display:flex;gap:14px;align-items:center;padding:18px"><span class="pbox" style="width:56px;height:56px;font-size:28px"><img src="/static/images/parkgo-mark.svg" alt=""></span><div><small style="color:var(--mut)" data-t="chosen"></small><b id="bname" style="display:block;font-size:22px"></b><span class="free" id="bfree"></span></div></div>
     <h4 data-t="when"></h4>
     <div class="opts" id="opts"></div>
     <h4 data-t="yourName"></h4>
     <input class="n" id="cname" maxlength="80" autocomplete="name">
     <h4 data-t="plate"></h4>
     <div class="plate"><i>KZ</i><input class="f" id="plate" maxlength="20" placeholder="123 ABC 01" autocapitalize="characters"></div>
-    <div class="rows"><div><span data-t="parking"></span><b id="rloc"></b></div><div><span data-t="spot"></span><b id="rspot"></b></div><div><span data-t="cost"></span><b id="rprice"></b></div></div>
+    <div class="rows"><div><span data-t="parking"></span><b id="rloc"></b></div><div><span data-t="spot"></span><b id="rspot"></b></div><div><span data-t="cost"></span><b id="rprice"></b></div><div class="booking-estimate" id="promoEstimate" hidden><span data-t="estimate"></span><b id="promoPrice"></b></div></div>
+    <div class="promo-row"><button class="promo-link" data-go="promos">{{ icon("tag") }} <span data-t="promoLabel"></span></button><strong id="bookingPromo"></strong></div>
     <p class="note" data-t="note"></p><p id="fxNote"></p>
     <p class="err" id="err"></p>
   </div>
@@ -198,16 +229,16 @@ input.n{width:100%;height:60px;border-radius:16px;border:1px solid var(--ln);pad
 <!-- DONE -->
 <section class="scr done" id="done">
   <div class="lang" style="position:absolute;right:14px;top:calc(14px + env(safe-area-inset-top))"></div>
-  <div class="ok"><svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
-  <p class="sub" style="margin:22px 0 4px" data-t="confirmed"></p>
+  <div class="ok">{{ icon('check') }}</div>
   <h1 data-t="booked"></h1>
   <div class="ticket card">
-    <div class="shead"><div><small id="dloc"></small><h2 id="dspot"></h2></div><span class="pbox"><img src="/static/images/parkgo-logo.jpg" alt="logo"></span></div>
+    <div class="shead"><div><small id="dloc"></small><h2 id="dspot"></h2></div><span class="pbox"><img src="/static/images/parkgo-mark.svg" alt=""></span></div>
     <div class="until"><span data-t="until"></span><b id="duntil"></b></div>
     <p id="dcar"></p><p id="dref"></p>
-    <p style="text-align:center;font-size:12px;color:var(--mut);margin:8px 0 0" data-t="saved"></p>
+    <p id="donePromo" hidden></p>
+    <figure class="qr" id="bookingQr" hidden><img id="qrImage" width="182" height="182" alt="QR" loading="lazy"><figcaption data-t="scanQr"></figcaption></figure>
   </div>
-  <div class="timer">⏱ <span id="dleft"></span></div>
+  <div class="timer">{{ icon("clock") }} <span id="dleft"></span></div>
   <button class="cta" id="go" data-t="go"></button>
   <button class="cta dark" data-go="home" data-t="anotherCar" style="flex-shrink:0;margin-top:12px"></button>
   <button class="cancel" data-go="bookings" data-t="myBookings"></button>
@@ -217,12 +248,12 @@ input.n{width:100%;height:60px;border-radius:16px;border:1px solid var(--ln);pad
 
 <!-- FAQ -->
 <section class="scr" id="faq" style="background:var(--bg)">
-  <div class="bar"><button class="back" data-go="support" aria-label="Back">‹</button><h3 data-t="faq"></h3><div class="lang"></div></div>
+  <div class="bar"><button class="back" data-go="support" aria-label="Back">{{ icon("back") }}</button><h3 data-t="faq"></h3><div class="lang"></div></div>
   <div class="body" id="faqList"></div>
 </section>
 <!-- TICKET -->
 <section class="scr" id="ticket" style="background:var(--bg)">
-  <div class="bar"><button class="back" data-go="support" aria-label="Back">‹</button><h3 id="tTitle"></h3><div class="lang"></div></div>
+  <div class="bar"><button class="back" data-go="support" aria-label="Back">{{ icon("back") }}</button><h3 id="tTitle"></h3><div class="lang"></div></div>
   <div class="body"><p id="tHint" style="color:var(--mut);margin:4px 0 14px"></p>
     <textarea class="ta" id="tmsg" maxlength="1000" data-ph="msgPh"></textarea>
     <h4 data-t="contactLbl"></h4><input class="n" id="tcontact" maxlength="80" data-ph="contactPh">
@@ -231,17 +262,34 @@ input.n{width:100%;height:60px;border-radius:16px;border:1px solid var(--ln);pad
 </section>
 <!-- SUPPORT -->
 <section class="scr" id="support" style="background:var(--bg)">
-  <div class="shead2"><div class="lang" style="position:absolute;right:14px;top:calc(14px + env(safe-area-inset-top))"></div><span class="sicon"><img src="/static/images/support.png" alt="support"></span><h1 data-t="help"></h1><p data-t="helpSub"></p></div>
+  <div class="shead2"><div class="lang" style="position:absolute;right:14px;top:calc(14px + env(safe-area-inset-top))"></div><span class="sicon">{{ icon("support") }}</span><h1 data-t="help"></h1><p data-t="helpSub"></p></div>
   <div class="body">
     <h4 style="margin-top:4px" data-t="helpH"></h4>
     <ul class="list card">
-      <li><button class="li" data-sup="faq"><div><b data-t="faq"></b><span data-t="faqS"></span></div>›</button></li>
-      <li><button class="li" data-sup="booking"><div><b data-t="bIssue"></b><span data-t="bIssueS"></span></div>›</button></li>
-      <li><button class="li" data-sup="payment"><div><b data-t="pIssue"></b><span data-t="pIssueS"></span></div>›</button></li></ul>
+      <li><button class="li" data-sup="faq"><div><b data-t="faq"></b><span data-t="faqS"></span></div>{{ icon("next") }}</button></li>
+      <li><button class="li" data-sup="booking"><div><b data-t="bIssue"></b><span data-t="bIssueS"></span></div>{{ icon("next") }}</button></li>
+      <li><button class="li" data-sup="payment"><div><b data-t="pIssue"></b><span data-t="pIssueS"></span></div>{{ icon("next") }}</button></li></ul>
     <button class="contact" data-sup="chat" style="width:100%;text-align:left"><div><b data-t="contact"></b><br><span style="font-size:13px;color:var(--mut)" data-t="contactS"></span></div><span class="on-badge">Online</span></button>
     <p id="acct" style="text-align:center;color:var(--mut);font-size:14px;margin-top:18px"></p>
   </div>
-  <nav class="nav" style="position:static"><button data-go="home"><img class="ui-icon" src="/static/images/home.png" alt="home"><span data-t="map"></span></button><button data-go="bookings"><span data-t="myBookings"></span></button><button class="on" data-go="support"><img class="ui-icon" src="/static/images/support.png" alt="support"><span data-t="support"></span></button></nav>
+  {{ navigation('support') }}
+</section>
+
+<section class="scr" id="promos">
+  <div class="bar"><button class="back" id="promoBack" aria-label="Назад / Back">{{ icon('back') }}</button><h3 data-t="promos"></h3><div class="lang"></div></div>
+  <div class="body">
+    <form class="card promo-card" id="promoForm">
+      <p class="promo-hint" data-t="promoHint"></p>
+      {% if user %}
+      <label for="promoInput" data-t="promoLabel"></label>
+      <input class="n" id="promoInput" name="code" required minlength="3" maxlength="32" autocomplete="off" autocapitalize="characters" spellcheck="false">
+      <button class="cta" id="checkPromo" data-t="applyPromo"></button>
+      <p class="promo-feedback" id="promoFeedback" role="status"></p>
+      <button type="button" class="promo-link" id="removePromo" data-t="removePromo" hidden></button>
+      {% else %}<a class="promo-link" href="/login?next=/?pane=promos" data-t="login"></a>{% endif %}
+    </form>
+  </div>
+  {{ navigation('promos') }}
 </section>
 </div>
 
@@ -251,6 +299,9 @@ const CSRF_TOKEN={{ csrf_token()|tojson }};
 const KEY="05f9709b-5abd-4a6f-8e4a-593ac1e4df3f";/* <-- вставьте сюда ключ 2GIS в кавычках */
 const COORD={{ lots|tojson }};/* [долгота, широта] парковок: задаются в app.py (LOTS) */
 const LOT_LABELS={{ lot_labels|tojson }};
+const EXPO_CHARGING={{ expo_charging|tojson }};
+const PLUG_ICON={{ icon('plug')|tojson }}, NEXT_ICON={{ icon('next')|tojson }};
+const CHECK_ICON={{ icon('check')|tojson }}, ARROW_ICON={{ icon('arrow')|tojson }};
 const lotName=l=>LOT_LABELS[l]?.[lang]||l;
 const navUrl=l=>COORD[l]?`https://2gis.kz/directions/points/|${COORD[l][0]},${COORD[l][1]};${encodeURIComponent(lotName(l))}?m=${COORD[l][0]},${COORD[l][1]}/16`:`https://2gis.kz/search/${encodeURIComponent(lotName(l))}`;
 const USER={{ (user.email if user else none)|tojson }},NAME={{ (user.full_name if user else "")|tojson }};
@@ -260,9 +311,12 @@ const storage={get(k){try{return localStorage.getItem(k)}catch{return null}},set
 const activeKey="pg-active-"+USER;
 function finishLoading(){document.querySelector("#loader").hidden=true}
 setTimeout(finishLoading,6000);
-function pinIcon(n,sel){const c=n==0?"#dc4b4b":n==1?"#e8a62a":"#17964a";
- const v=`<svg xmlns="http://www.w3.org/2000/svg" width="78" height="58" viewBox="0 0 78 58"><path d="M29 39L39 52L49 39" fill="${c}" stroke="#fff" stroke-width="3"/><rect x="4" y="3" width="70" height="40" rx="20" fill="${c}" stroke="${sel?"#16211b":"#fff"}" stroke-width="${sel?4:3}"/><text x="22" y="29" font-family="Arial,sans-serif" font-size="14" font-weight="700" fill="#ffffffbb">P</text><text x="48" y="32" font-family="Arial,sans-serif" font-size="22" font-weight="800" fill="#fff" text-anchor="middle">${n}</text><circle cx="39" cy="52" r="4" fill="${c}" stroke="#fff" stroke-width="2"/></svg>`;
- return "data:image/svg+xml;charset=utf-8,"+encodeURIComponent(v)}
+function pinIcon(n,sel,charging){
+ const color=n===0?"#524945":n===1?"#8d6025":"#A7442F";
+ const mark=charging?PLUG_ICON.replace('class="icon"','x="12" y="11" width="23" height="23"').replace('stroke="currentColor"','stroke="white"'):`<text x="18" y="29" font-size="14" fill="white">P</text>`;
+ const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="78" height="58" viewBox="0 0 78 58" font-family="system-ui,sans-serif" font-weight="700"><path d="M29 39L39 52L49 39" fill="${color}" stroke="white" stroke-width="3"/><rect x="4" y="3" width="70" height="40" rx="20" fill="${color}" stroke="${sel?"#282320":"white"}" stroke-width="${sel?4:3}"/>${mark}<text x="48" y="31" font-size="21" fill="white" text-anchor="middle">${n}</text></svg>`;
+ return "data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg);
+}
 function fitParkingLots(){if(!gmap)return;const points=Object.values(COORD);if(!points.length)return;
  const bounds=new mapgl.LngLatBoundsClass({southWest:points[0],northEast:points[0]});points.forEach(p=>bounds.extend(p));
  gmap.fitBounds(bounds,{padding:{left:48,right:48,top:$("#home .top").offsetHeight+24,bottom:$("#peek").offsetHeight+$("#home .nav").offsetHeight+40},maxZoom:16,animation:{duration:0}})
@@ -286,25 +340,80 @@ function initMap(){return new Promise(resolve=>{
  };document.head.append(sc)
 })}
 const POS={"Campus North":[30,28],"Campus South":[66,46],"Main Building":[34,70]};
-const T={ru:{search:"Найти парковку рядом",map:"Карта",support:"Поддержка",all:"Все",bookTitle:"Забронировать место",chosen:"Выбранная парковка",when:"На какое время?",yourName:"Ваше имя",plate:"Номер автомобиля",parking:"Парковка",spot:"Место",cost:"Стоимость",note:"Оплата производится по фактическому времени парковки. Бронь можно отменить в любой момент.",confirm:"Подтвердить бронь",confirmed:"БРОНИРОВАНИЕ ПОДТВЕРЖДЕНО",booked:"Место забронировано",until:"Бронь до",showQr:"Покажите QR-код при въезде",go:"Поехать к парковке",cancel:"Отменить бронь",help:"Чем помочь?",helpSub:"Поддержка ParkGo работает каждый день",helpH:"Помощь",faq:"Частые вопросы",faqS:"Ответы о ParkGo",bIssue:"Проблема с бронью",bIssueS:"Изменить или отменить бронь",pIssue:"Проблема с оплатой",pIssueS:"Чеки и способы оплаты",contact:"Написать в поддержку",contactS:"Обычно отвечаем за 2 минуты",send:"Отправить",contactLbl:"Как с вами связаться (по желанию)",contactPh:"Телефон или email",msgPh:"Опишите проблему",sent:"Отправлено, мы скоро ответим",hintB:"Расскажите, что случилось с бронью.",hintP:"Расскажите, что не так с оплатой.",hintC:"Напишите нам, мы ответим в течение пары минут.",faqs:[["Как забронировать место?","Выберите парковку на карте, нажмите «Забронировать», укажите имя и номер автомобиля и подтвердите бронь."],["Как отменить бронь?","После брони откройте экран подтверждения и нажмите «Отменить бронь». Место сразу станет свободным."],["Когда я плачу?","Оплата идёт по фактическому времени парковки, бронь бесплатная."],["Что делать, если мест нет?","Выберите другую парковку на карте: красный маркер значит, что свободных мест нет."]],signedAs:"Вы вошли как",logout:"Выйти",login:"Войти",free:n=>`${n} свободных мест`,of:"из",total:"Всего мест",rate:"Стоимость",nextSpot:"Ваше место",book:"Забронировать",go2:"Поехать",h:"₸/час",now:"15 минут",m30:"30 минут",h1:"1 час",h2:"2 часа",left:m=>`Бронь действует ещё ${m} минут`,full:"Свободных мест нет",fill:"Введите имя и номер автомобиля"},
-en:{search:"Find parking nearby",map:"Map",support:"Support",all:"All",bookTitle:"Book a spot",chosen:"Selected parking",when:"For how long?",yourName:"Your name",plate:"Car plate number",parking:"Parking",spot:"Spot",cost:"Price",note:"Payment is based on actual parking time. You can cancel a booking at any time.",confirm:"Confirm booking",confirmed:"BOOKING CONFIRMED",booked:"Spot reserved",until:"Reserved until",showQr:"Show the QR code at the entrance",go:"Drive to parking",cancel:"Cancel booking",help:"How can we help?",helpSub:"ParkGo support is available every day",helpH:"Help",faq:"Frequently asked questions",faqS:"Answers about ParkGo",bIssue:"Booking issue",bIssueS:"Change or cancel a booking",pIssue:"Payment issue",pIssueS:"Receipts and payment methods",contact:"Contact support",contactS:"We usually reply in 2 minutes",send:"Send",contactLbl:"How to reach you (optional)",contactPh:"Phone or email",msgPh:"Describe the problem",sent:"Sent, we will reply soon",hintB:"Tell us what happened with your booking.",hintP:"Tell us what is wrong with the payment.",hintC:"Write to us, we usually reply in a couple of minutes.",faqs:[["How do I book a spot?","Choose a parking on the map, tap Book, enter your name and car plate, then confirm."],["How do I cancel a booking?","Open the confirmation screen after booking and tap Cancel booking. The spot becomes free right away."],["When do I pay?","You pay for the actual parking time. Booking itself is free."],["What if there are no spots?","Pick another parking on the map. A red marker means there are no free spots."]],signedAs:"Signed in as",logout:"Log out",login:"Log in",free:n=>`${n} spaces available`,of:"of",total:"Total spots",rate:"Price",nextSpot:"Your spot",book:"Book",go2:"Go",h:"₸/hour",now:"15 minutes",m30:"30 minutes",h1:"1 hour",h2:"2 hours",left:m=>`Booking is valid for ${m} more minutes`,full:"No free spots",fill:"Enter your name and car plate"}};
+const T={ru:{search:"Найти парковку рядом",map:"Карта",support:"Поддержка",all:"Все",bookTitle:"Забронировать место",chosen:"Выбранная парковка",when:"На какое время?",yourName:"Ваше имя",plate:"Номер автомобиля",parking:"Парковка",spot:"Место",cost:"Стоимость",note:"Оплата производится по фактическому времени парковки. Бронь можно отменить в любой момент.",confirm:"Подтвердить бронь",confirmed:"БРОНИРОВАНИЕ ПОДТВЕРЖДЕНО",booked:"Место забронировано",until:"Бронь до",showQr:"Покажите QR-код при въезде",go:"Поехать к парковке",cancel:"Отменить бронь",help:"Чем помочь?",helpSub:"Поддержка ParkGo работает каждый день",helpH:"Помощь",faq:"Частые вопросы",faqS:"Ответы о ParkGo",bIssue:"Проблема с бронью",bIssueS:"Изменить или отменить бронь",pIssue:"Проблема с оплатой",pIssueS:"Чеки и способы оплаты",contact:"Написать в поддержку",contactS:"Обычно отвечаем за 2 минуты",send:"Отправить",contactLbl:"Как с вами связаться (по желанию)",contactPh:"Телефон или email",msgPh:"Опишите проблему",sent:"Отправлено, мы скоро ответим",hintB:"Расскажите, что случилось с бронью.",hintP:"Расскажите, что не так с оплатой.",hintC:"Напишите нам, мы ответим в течение пары минут.",faqs:[["Как забронировать место?","Выберите парковку на карте, нажмите «Забронировать», укажите имя и номер автомобиля и подтвердите бронь."],["Как отменить бронь?","После брони откройте экран подтверждения и нажмите «Отменить бронь». Место сразу станет свободным."],["Когда я плачу?","Оплата идёт по фактическому времени парковки, бронь бесплатная."],["Что делать, если мест нет?","Выберите другую парковку на карте: число на маркере показывает количество свободных мест."]],signedAs:"Вы вошли как",logout:"Выйти",login:"Войти",free:n=>`${n} свободных мест`,of:"из",total:"Всего мест",rate:"Стоимость",nextSpot:"Ваше место",book:"Забронировать",go2:"Поехать",h:"₸/час",now:"15 минут",m30:"30 минут",h1:"1 час",h2:"2 часа",left:m=>`Бронь действует ещё ${m} минут`,full:"Свободных мест нет",fill:"Введите имя и номер автомобиля"},
+en:{search:"Find parking nearby",map:"Map",support:"Support",all:"All",bookTitle:"Book a spot",chosen:"Selected parking",when:"For how long?",yourName:"Your name",plate:"Car plate number",parking:"Parking",spot:"Spot",cost:"Price",note:"Payment is based on actual parking time. You can cancel a booking at any time.",confirm:"Confirm booking",confirmed:"BOOKING CONFIRMED",booked:"Spot reserved",until:"Reserved until",showQr:"Show the QR code at the entrance",go:"Drive to parking",cancel:"Cancel booking",help:"How can we help?",helpSub:"ParkGo support is available every day",helpH:"Help",faq:"Frequently asked questions",faqS:"Answers about ParkGo",bIssue:"Booking issue",bIssueS:"Change or cancel a booking",pIssue:"Payment issue",pIssueS:"Receipts and payment methods",contact:"Contact support",contactS:"We usually reply in 2 minutes",send:"Send",contactLbl:"How to reach you (optional)",contactPh:"Phone or email",msgPh:"Describe the problem",sent:"Sent, we will reply soon",hintB:"Tell us what happened with your booking.",hintP:"Tell us what is wrong with the payment.",hintC:"Write to us, we usually reply in a couple of minutes.",faqs:[["How do I book a spot?","Choose a parking on the map, tap Book, enter your name and car plate, then confirm."],["How do I cancel a booking?","Open the confirmation screen after booking and tap Cancel booking. The spot becomes free right away."],["When do I pay?","You pay for the actual parking time. Booking itself is free."],["What if there are no spots?","Pick another parking on the map. The number on each marker shows how many spots are free."]],signedAs:"Signed in as",logout:"Log out",login:"Log in",free:n=>`${n} spaces available`,of:"of",total:"Total spots",rate:"Price",nextSpot:"Your spot",book:"Book",go2:"Go",h:"₸/hour",now:"15 minutes",m30:"30 minutes",h1:"1 hour",h2:"2 hours",left:m=>`Booking is valid for ${m} more minutes`,full:"No free spots",fill:"Enter your name and car plate"}};
 Object.assign(T.ru,{myBookings:"Мои брони",anotherCar:"На карту / другая машина",saved:"Бронь сохранена в вашем аккаунте",empty:"У вас пока нет активных броней",legacy:"До отмены",expired:"Срок брони истёк",network:"Не удалось связаться с сервером. Попробуйте ещё раз.",reference:"Номер брони",loading:"Загрузка…"});
 Object.assign(T.en,{myBookings:"My bookings",anotherCar:"Map / another car",saved:"Booking saved in your account",empty:"You have no active bookings",legacy:"Until cancelled",expired:"Booking expired",network:"Unable to reach the server. Please try again.",reference:"Booking number",loading:"Loading…"});
 Object.assign(T.ru,{chooseSpot:"Выберите парковочное место",chooseSpotHint:"Нажмите на свободное место на схеме",available:"Свободно",occupied:"Занято",selected:"Выбрано",entrance:"ВЪЕЗД",noSelection:"Выберите место",selectionLost:"Выбранное место уже занято. Выберите другое на схеме.",schemeHint:"Схема мест условная. Занятость обновляется автоматически.",routeTitle:"Маршрут в 2ГИС",routeLocate:"Моё местоположение",routePick:"Указать на карте",routeExternal:"Открыть в 2ГИС",routeChoose:"Выберите начало маршрута: ваше местоположение или точку на карте.",routeClick:"Нажмите на карте, откуда поедете.",routeLoading:"Строим автомобильный маршрут…",routeReady:"Автомобильный маршрут построен. Можно выбрать другое начало.",routeError:"Не удалось построить маршрут. Попробуйте другую точку или откройте 2ГИС.",routeMapError:"Карта 2ГИС недоступна. Можно открыть маршрут в 2ГИС.",routeGeoError:"Не удалось определить местоположение. Разрешите доступ или укажите точку на карте.",routeLocating:"Определяем местоположение…"});
 Object.assign(T.en,{chooseSpot:"Choose a parking spot",chooseSpotHint:"Tap an available spot on the diagram",available:"Available",occupied:"Occupied",selected:"Selected",entrance:"ENTRY",noSelection:"Choose a spot",selectionLost:"Your selected spot is no longer available. Please choose another.",schemeHint:"Illustrative layout. Availability updates automatically.",routeTitle:"2GIS directions",routeLocate:"My location",routePick:"Choose on map",routeExternal:"Open in 2GIS",routeChoose:"Choose a starting point: your location or a point on the map.",routeClick:"Tap the map where you will start driving.",routeLoading:"Building a driving route…",routeReady:"Driving route is ready. You can choose a different starting point.",routeError:"Unable to build a route. Try another point or open 2GIS.",routeMapError:"The 2GIS map is unavailable. You can open directions in 2GIS.",routeGeoError:"Unable to locate you. Allow location access or choose a point on the map.",routeLocating:"Finding your location…"});
 Object.assign(T.ru,{free:n=>`Свободно: ${n}`,reserved:"Забронировано",reservedShort:"Бронь",selectedFree:"Выбрано · свободно",selectionHint:"Место остаётся свободным до подтверждения брони.",availableCount:(n,total)=>`Свободно: ${n} из ${total}`,occupancyCount:(occupied,reserved)=>`Занято: ${occupied} · Забронировано: ${reserved}`});
 Object.assign(T.en,{free:n=>`Available: ${n}`,reserved:"Reserved",reservedShort:"Reserved",selectedFree:"Selected · available",selectionHint:"Selecting a spot does not reserve it. Confirm your booking to reserve.",availableCount:(n,total)=>`Available: ${n} of ${total}`,occupancyCount:(occupied,reserved)=>`Occupied: ${occupied} · Reserved: ${reserved}`});
+Object.assign(T.ru,{
+ promos:"Промокоды",promoLabel:"Промокод",promoHint:"Добавьте промокод для следующего бронирования.",
+ applyPromo:"Добавить промокод",removePromo:"Убрать промокод",
+ promoUnavailable:"Промокод не найден, истёк или исчерпал лимит активаций.",
+ promoReady:(code,benefit)=>`${code} · ${benefit}. Будет применён при подтверждении брони.`,
+ percent:n=>`Скидка ${n}%`,fixed:n=>`Скидка ${n} ₸`,minutes:n=>`+${n} мин к брони`,
+ estimate:"Оценка с промокодом",scanQr:"Отсканируйте, чтобы увидеть номер брони",
+ evOnsite:"Зарядка на парковке",evNearby:"Зарядка рядом",
+ evLocation:"eDrive · Экспо-2, пр. Мангилик Ел, 55. Въезд с 3-го паркинга.",evSource:"Карта eDrive"
+});
+Object.assign(T.en,{
+ promos:"Promo codes",promoLabel:"Promo code",promoHint:"Add a promo code for your next booking.",
+ applyPromo:"Add promo code",removePromo:"Remove promo code",
+ promoUnavailable:"This promo code is invalid, expired, or has reached its activation limit.",
+ promoReady:(code,benefit)=>`${code} · ${benefit}. It will be applied when you confirm a booking.`,
+ percent:n=>`${n}% off`,fixed:n=>`${n} ₸ off`,minutes:n=>`+${n} min on your booking`,
+ estimate:"Estimate with promo code",scanQr:"Scan to see the booking number",
+ evOnsite:"EV charging on site",evNearby:"EV charging nearby",
+ evLocation:"eDrive · EXPO-2, 55 Mangilik El Avenue. Entrance via parking lot 3.",evSource:"eDrive map"
+});
 let tcat=null,lang=storage.get("pg-lang")==="en"?"en":"ru",cur=null,selectedSpotId=null,selectionLost=false,mins=30,rid=null,filt="all",busy=false;
 const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s),t=k=>T[lang][k];
 const groups={};SPOTS.forEach(s=>(groups[s.loc]??=[]).push(s));
-const info=l=>{const a=groups[l],f=a.filter(s=>s.free);return{loc:l,all:a,free:f,n:f.length,occupied:a.filter(s=>s.status==="Occupied").length,reserved:a.filter(s=>s.status==="Reserved").length,price:a[0].price}};
+const info=l=>{const a=groups[l],f=a.filter(s=>s.free);return{loc:l,all:a,free:f,n:f.length,occupied:a.filter(s=>s.status==="Occupied").length,reserved:a.filter(s=>s.status==="Reserved").length,price:a[0].price,evCharging:a[0].ev_charging,evNearby:a[0].ev_nearby}};
+const evLabel=d=>d.evCharging?t("evOnsite"):d.evNearby?t("evNearby"):"";
+const evBadge=d=>evLabel(d)?`<span class="ev-label">${PLUG_ICON}${evLabel(d)}</span>`:"";
+
+const promoStorageKey="pg-promo-"+USER;
+let activePromo=null,promoError="",promoReturn="home";
+try {
+ const saved=USER&&JSON.parse(storage.get(promoStorageKey));
+ if(saved&&/^[A-Z0-9][A-Z0-9-]{2,31}$/.test(saved.code)&&
+    ["percent","fixed","minutes"].includes(saved.kind)&&Number.isInteger(saved.value))activePromo=saved;
+} catch {}
+const benefit=promo=>t(promo.kind)(promo.value);
+const money=tiyn=>`${new Intl.NumberFormat(lang,{maximumFractionDigits:2}).format(tiyn/100)} ₸`;
+function setPromo(promo){
+ activePromo=promo;promoError="";pendingKey=null;
+ storage.set(promoStorageKey,promo?JSON.stringify(promo):"");
+ renderPromo();fillBook();
+}
+function renderPromo(){
+ const feedback=$("#promoFeedback");if(!feedback)return;
+ const selected=activePromo?t("promoReady")(activePromo.code,benefit(activePromo)):"";
+ feedback.textContent=promoError?`${t(promoError)} ${selected}`.trim():selected;
+ feedback.classList.toggle("error",Boolean(promoError));
+ $("#removePromo").hidden=!activePromo;
+}
+function bookingEstimate(hourly){
+ const base=Math.round(Math.round(hourly*100)*mins/60);
+ if(activePromo.kind==="percent")return base-Math.round(base*activePromo.value/100);
+ if(activePromo.kind==="fixed")return Math.max(0,base-activePromo.value*100);
+ return base;
+}
+
 const cls=n=>n==0?"no":n==1?"mid":"ok";
 function show(id){closeSheet();$$(".scr").forEach(s=>s.classList.toggle("on",s.id==id));
  $("#app").classList.toggle("spaces-view",id==="spaces");
  if(id==="spaces")renderSpaces();
  if(id==="home")requestAnimationFrame(()=>{gmap?.invalidateSize();if(gmap&&filt==="all"&&!$("#app").classList.contains("route-view"))fitParkingLots()});
  if(id!=="done")storage.set(activeKey,"");
- if(id==="bookings")refreshBookings().catch(()=>{$("#bookingsError").textContent=t("network")})}
+ if(id==="bookings"){
+  const error=$("#bookingsError");
+  refreshBookings().catch(()=>{error.textContent=t("network")});
+ }
+}
 function price(kzt){return lang==="en"?`${kzt} ₸/hour${fx?` (≈ $${(kzt/fx.kzt_per_usd).toFixed(2)}/hour)`:" · USD unavailable"}`:`${kzt} ₸/час`}
 function renderBookings(){
  const list=$("#bookingList");list.replaceChildren();
@@ -318,9 +427,15 @@ function renderBookings(){
 function fillDone(){const b=BOOKINGS.find(b=>b.id===rid);if(!b)return;
  $("#dloc").textContent=lotName(b.location);$("#dspot").textContent=t("spot")+" "+b.spot;
  $("#dcar").textContent=b.car_number;$("#dref").textContent=t("reference")+": #"+b.id;
+ const promo=$("#donePromo");promo.hidden=!b.promo_code;
+ promo.textContent=b.promo_code?`${b.promo_code} · ${benefit({kind:b.promo_kind,value:b.promo_value})} · ${t("estimate")} ${money(b.promo_total)}`:"";
  $("#duntil").textContent=b.expires_at?new Date(b.expires_at*1000).toLocaleTimeString(lang,{hour:"2-digit",minute:"2-digit"}):t("legacy");
  const remaining=b.expires_at?Math.max(0,Math.ceil((b.expires_at*1000-Date.now())/60000)):null;
  $("#dleft").textContent=remaining===null?t("legacy"):remaining?t("left")(remaining):t("expired");
+ $("#bookingQr").hidden=remaining===0;
+ const qr=$("#qrImage"),src=`/reservations/${b.id}/qr.svg`;
+ if(remaining!==0&&qr.getAttribute("src")!==src)qr.src=src;
+ qr.alt=`QR · ${t("reference")} #${b.id}`;
  $("#cancel").disabled=remaining===0;$("#go").onclick=()=>startRoute(b.location)
 }
 function openBooking(id){rid=id;$("#doneError").textContent="";fillDone();show("done");storage.set(activeKey,String(id))}
@@ -330,7 +445,7 @@ async function refreshBookings(){if(!USER)return;const response=await fetch("/ap
 }
 function render(){
  document.documentElement.lang=lang;
- renderBookings();fillDone();
+ renderBookings();fillDone();renderPromo();
  $("#fxNote").textContent=lang==="en"?(fx?`USD is approximate: KZT ÷ ${fx.kzt_per_usd}. NBK rate dated ${fx.date}. Payment in KZT.`:"USD estimate unavailable. Payment in KZT."):"";
  $$("[data-t]").forEach(e=>e.textContent=t(e.dataset.t));
  $$("[data-ph]").forEach(e=>e.placeholder=t(e.dataset.ph));
@@ -340,40 +455,57 @@ function render(){
  $$(".pin").forEach(p=>p.remove());
  const vis=locs.filter(l=>(filt=="all"||filt==l)&&(l+" "+lotName(l)).toLowerCase().includes(q));
  gmarks.forEach(m=>m.destroy());gmarks=[];
- vis.forEach((l,i)=>{if($("#app").classList.contains("route-view"))return;const d=info(l),p=fallbackPosition(l,i),c=`pin ${cls(d.n)} ${cur==l?"sel":""}`,h=`<small>P</small>${d.n}`;
-  if(gmap&&COORD[l]){const m=new mapgl.Marker(gmap,{coordinates:COORD[l],icon:pinIcon(d.n,cur==l),size:[78,58],anchor:[39,52],zIndex:cur==l?2:1});m.on("click",()=>openSheet(l));gmarks.push(m)}
-  else if(!gmap){const b=document.createElement("button");b.className=c;b.style.left=p[0]+"%";b.style.top=p[1]+"%";b.innerHTML=h;b.onclick=()=>openSheet(l);$("#map").append(b)}});
+ vis.forEach((l,i)=>{
+  if($("#app").classList.contains("route-view"))return;
+  const d=info(l),charging=d.evCharging||d.evNearby;
+  if(gmap&&COORD[l]){
+   const marker=new mapgl.Marker(gmap,{coordinates:COORD[l],icon:pinIcon(d.n,cur===l,charging),size:[78,58],anchor:[39,52],zIndex:cur===l?2:1});
+   marker.on("click",()=>openSheet(l));gmarks.push(marker);
+  }else if(!gmap){
+   const b=document.createElement("button"),[x,y]=fallbackPosition(l,i);
+   b.className=`pin ${cls(d.n)} ${cur===l?"sel":""}`;b.style.left=x+"%";b.style.top=y+"%";
+   b.innerHTML=`${charging?PLUG_ICON:"<small>P</small>"}${d.n}`;
+   b.setAttribute("aria-label",[lotName(l),t("free")(d.n),evLabel(d)].filter(Boolean).join(" · "));
+   b.onclick=()=>openSheet(l);$("#map").append(b);
+  }
+ });
  const pk=cur&&vis.includes(cur)?cur:vis[0];
  $("#peek").style.display=pk?"flex":"none";
- if(pk){const d=info(pk);$("#peek").innerHTML=`<span class="pbox"><img src="/static/images/parkgo-logo.jpg" alt="logo"></span><div><b>${lotName(pk)}</b><span class="free" style="${d.n?"":"color:var(--rd)!important"}">● ${d.n?t("free")(d.n):t("full")}</span></div><span style="margin-left:auto;font-size:22px">›</span>`;$("#peek").onclick=()=>openSheet(pk)}
+ if(pk){
+  const d=info(pk);
+  $("#peek").innerHTML=`<div class="peek-info"><b>${lotName(pk)}</b><span class="free" style="${d.n?"":"color:var(--rd)!important"}">${d.n?t("free")(d.n):t("full")}</span>${evBadge(d)}</div>${NEXT_ICON}`;
+  $("#peek").onclick=()=>openSheet(pk);
+ }
  if(cur){renderSpaces();fillBook()}
  $("#faqList").innerHTML=T[lang].faqs.map(([q,a])=>`<details class="card qa"><summary>${q}</summary><p>${a}</p></details>`).join("");
  if(tcat)setTicket();
  $("#acct").innerHTML=USER?`${t("signedAs")} <b></b> · <a href="/logout" style="color:var(--g);font-weight:700">${t("logout")}</a>`:`<a href="/login" style="color:var(--g);font-weight:700">${t("login")}</a>`;
  if(USER)$("#acct b").textContent=USER;
 }
-function openSheet(l){cur=l;const d=info(l),nx=d.free[0];
- $("#sheet").innerHTML=`<div class="grab"></div><div class="shead"><div><div class="sub">PARKGO</div><h2>${lotName(l)}</h2></div><span class="pbox" style="width:56px;height:56px;font-size:28px"><img src="/static/images/parkgo-logo.jpg" alt="logo"></span></div>
- <span class="pill">● ${d.n?t("free")(d.n):t("full")}</span><span style="color:var(--mut)">${t("of")} ${d.all.length}</span>
+function openSheet(l){cur=l;const d=info(l);
+ $("#sheet").innerHTML=`<div class="shead"><h2>${lotName(l)}</h2></div>
+ <span class="pill">${d.n?t("free")(d.n):t("full")}</span><span style="color:var(--mut)">${t("of")} ${d.all.length}</span>
+ ${evLabel(d)?`<div class="ev-details">${evBadge(d)}${d.evNearby?`<br>${t("evLocation")} <a href="${EXPO_CHARGING}" target="_blank" rel="noopener">${t("evSource")}</a>`:""}</div>`:""}
  <div class="grid"><div class="tile"><span>${t("total")}</span><b>${d.all.length}</b></div><div class="tile"><span>${t("rate")}</span><b>${price(d.price)}</b></div></div>
  <p style="font-size:12px;color:var(--mut)">${lang==="en"?(fx?`Approximate USD · NBK ${fx.date} · Payment in KZT`:"USD estimate unavailable · Payment in KZT"):""}</p>
  <div class="two"><button class="cta" id="sbook" ${d.n?"":"disabled"}>${t("book")}</button><button class="cta dark" id="sroute">${t("go2")}</button></div>`;
- $("#sheet").classList.add("on");$("#shade").classList.add("on");
+ $("#sheet").inert=false;$("#sheet").classList.add("on");$("#shade").classList.add("on");
  $("#sbook").onclick=()=>openSpaces(l);$("#sroute").onclick=()=>startRoute(l);render()}
-function closeSheet(){$("#sheet").classList.remove("on");$("#shade").classList.remove("on")}
+function closeSheet(){$("#sheet").inert=true;$("#sheet").classList.remove("on");$("#shade").classList.remove("on")}
 function chosenSpot(){return cur?groups[cur]?.find(s=>s.id===selectedSpotId&&s.free):null}
 function openSpaces(l){if(cur!==l)selectedSpotId=null;cur=l;selectionLost=false;renderSpaces();show("spaces")}
 function renderSpaces(){if(!cur)return;const d=info(cur);
  if(selectedSpotId!==null&&!chosenSpot()){selectedSpotId=null;selectionLost=true;pendingKey=null}
  const selected=chosenSpot(),compact=d.all.length<=4,columns=compact?d.all.length:Math.ceil(d.all.length/2),split=columns;
  const lock='<svg class="bay-lock" width="38" height="42" viewBox="0 0 24 28" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 12V8a6 6 0 0 1 12 0v4"/><rect x="3" y="12" width="18" height="14" rx="3"/><path d="M12 17v4"/></svg>';
- const bay=s=>{const reserved=s.status==="Reserved",isSelected=selected?.id===s.id,status=isSelected?t("selectedFree"):s.free?t("available"):reserved?t("reservedShort"):t("occupied");return `<button class="parking-bay ${!s.free?"unavailable":""} ${reserved?"reserved":""} ${isSelected?"selected":""}" data-spot="${s.id}" ${s.free?"":"disabled"} aria-pressed="${isSelected}" aria-label="${t("spot")} ${s.name}: ${status}"><span class="bay-symbol">${reserved?lock:!s.free?'<img src="/static/images/car-top.svg" alt="">':isSelected?'<span class="bay-check" aria-hidden="true">✓</span>':""}</span><b>${s.name}</b><small class="bay-state">${status}</small></button>`};
+ const bay=s=>{const reserved=s.status==="Reserved",isSelected=selected?.id===s.id,status=isSelected?t("selectedFree"):s.free?t("available"):reserved?t("reservedShort"):t("occupied");return `<button class="parking-bay ${!s.free?"unavailable":""} ${reserved?"reserved":""} ${isSelected?"selected":""}" data-spot="${s.id}" ${s.free?"":"disabled"} aria-pressed="${isSelected}" aria-label="${t("spot")} ${s.name}: ${status}"><span class="bay-symbol">${reserved?lock:!s.free?'<img src="/static/images/car-top.svg" alt="">':isSelected?`<span class="bay-check">${CHECK_ICON}</span>`:""}</span><b>${s.name}</b><small class="bay-state">${status}</small></button>`};
  $("#app").classList.toggle("compact-spaces",compact);$(".parking-plan").classList.toggle("compact-plan",compact);
  const diagram=$("#parkingDiagram");diagram.style.setProperty("--columns",columns);diagram.style.setProperty("--plan-width",`${columns*(compact?92:74)+Math.max(0,columns-1)*(compact?14:12)}px`);
- diagram.innerHTML=`<div class="parking-row">${d.all.slice(0,split).map(bay).join("")}</div><div class="parking-drive" aria-hidden="true"><strong>${t("entrance")}</strong><span class="drive-arrow">→</span><span class="drive-dashes"></span><span class="drive-arrow">→</span></div>${compact?"":`<div class="parking-row">${d.all.slice(split).map(bay).join("")}</div>`}`;
+ diagram.innerHTML=`<div class="parking-row">${d.all.slice(0,split).map(bay).join("")}</div><div class="parking-drive" aria-hidden="true"><strong>${t("entrance")}</strong><span class="drive-arrow">${ARROW_ICON}</span><span class="drive-dashes"></span><span class="drive-arrow">${ARROW_ICON}</span></div>${compact?"":`<div class="parking-row">${d.all.slice(split).map(bay).join("")}</div>`}`;
  $("#selectedSpotName").textContent=selected?`${t("spot")} ${selected.name}`:t("noSelection");
  $("#selectedSpotStatus").hidden=!selected;$("#spacesLot").textContent=lotName(cur);
  $("#spacesLotHeading").textContent=lotName(cur);$("#spacesCount").textContent=t("availableCount")(d.n,d.all.length);$("#spacesBreakdown").textContent=t("occupancyCount")(d.occupied,d.reserved);$("#spacesPrice").textContent=price(selected?.price??d.price);
+ $("#spacesCharging").innerHTML=evBadge(d);
  $("#selectSpot").disabled=!selected;$("#selectionNotice").textContent=selectionLost?t("selectionLost"):"";
 }
 $("#selectSpot").onclick=()=>{if(!chosenSpot())return;if(!USER){location.href="/login?next=/";return}pendingKey=null;$("#err").textContent="";if(!$("#cname").value)$("#cname").value=NAME||"";fillBook();show("book")};
@@ -381,28 +513,56 @@ $("#spacesRoute").onclick=()=>startRoute(cur);
 function fillBook(){if(!cur)return;const d=info(cur);
  $("#bname").textContent=lotName(cur);$("#bfree").textContent="● "+(d.n?t("free")(d.n):t("full"));
  const sp=chosenSpot();$("#rloc").textContent=lotName(cur);$("#rspot").textContent=sp?sp.name:"—";$("#rprice").textContent=price(sp?.price??d.price);$("#confirm").disabled=busy||!sp;
+ $("#bookingPromo").textContent=activePromo?`${activePromo.code} · ${benefit(activePromo)}`:"";
+ $("#promoEstimate").hidden=!activePromo||!sp;
+ if(activePromo&&sp)$("#promoPrice").textContent=money(bookingEstimate(sp.price));
  if(selectionLost)$("#err").textContent=t("selectionLost");
  $("#opts").innerHTML=[[15,"now"],[30,"m30"],[60,"h1"],[120,"h2"]].map(([m,k])=>`<button class="opt ${m==mins?"on":""}" data-m="${m}">${t(k)}</button>`).join("")}
 document.addEventListener("click",e=>{
  const bay=e.target.closest("[data-spot]");if(bay){const sp=groups[cur]?.find(s=>s.id===+bay.dataset.spot);if(sp?.free){selectedSpotId=sp.id;selectionLost=false;pendingKey=null;renderSpaces();fillBook()}return}
  const sp=e.target.closest("[data-sup]");if(sp){const k=sp.dataset.sup;if(k=="faq")show("faq");else{tcat=k;setTicket();$("#terr").textContent="";show("ticket")}return}
- const g=e.target.closest("[data-go]");if(g){show(g.dataset.go);return}
+ const g=e.target.closest("[data-go]");if(g){
+  if(g.dataset.go==="promos"&&!$("#promos").classList.contains("on"))promoReturn=$(".scr.on").id;
+  show(g.dataset.go);return
+ }
  const l=e.target.closest("[data-l]");if(l){lang=l.dataset.l;storage.set("pg-lang",lang);render();if(cur&&$("#sheet").classList.contains("on"))openSheet(cur);return}
  const f=e.target.closest("[data-f]");if(f){filt=f.dataset.f;render();if(gmap){if(filt==="all")fitParkingLots();else if(COORD[filt]){gmap.setCenter(COORD[filt]);gmap.setZoom(18)}}return}
- const o=e.target.closest("[data-m]");if(o){mins=+o.dataset.m;fillBook()}});
+ const o=e.target.closest("[data-m]");if(o&&!busy){if(mins!==+o.dataset.m)pendingKey=null;mins=+o.dataset.m;fillBook()}});
 $("#shade").onclick=closeSheet;$("#q").oninput=render;$("#bback").onclick=()=>show("spaces");
+document.addEventListener("keydown",event=>{if(event.key==="Escape"&&$("#sheet").classList.contains("on"))closeSheet()});
+$("#promoBack").onclick=()=>show(promoReturn);
 let pendingKey=null;
 $("#plate").addEventListener("input",()=>pendingKey=null);
+$("#cname").addEventListener("input",()=>pendingKey=null);
+if(USER){
+ $("#promoInput").value=activePromo?.code||"";
+ $("#removePromo").onclick=()=>{setPromo(null);$("#promoInput").value="";$("#promoInput").focus()};
+ $("#promoForm").onsubmit=async event=>{
+  event.preventDefault();const button=$("#checkPromo"),input=$("#promoInput");
+  if(button.disabled)return;
+  button.disabled=true;input.readOnly=true;
+  try{
+   const response=await fetch("/api/promo/preview",{method:"POST",headers:{"X-CSRF-Token":CSRF_TOKEN},body:new URLSearchParams({code:input.value})});
+   if(response.status===401){location.href="/login?next=/?pane=promos";return}
+   if(response.status===404){promoError="promoUnavailable";return}
+   if(!response.ok)throw new Error();
+   const promo=await response.json();input.value=promo.code;setPromo(promo);
+  }catch{promoError="network"}
+  finally{button.disabled=false;input.readOnly=false;renderPromo()}
+ };
+}
 $("#confirm").onclick=async()=>{
  if(busy)return;const sp=chosenSpot(),name=$("#cname").value.trim(),car=$("#plate").value.trim();
  if(!sp){$("#err").textContent=t("selectionLost");return}if(!name||!car){$("#err").textContent=t("fill");return}
  busy=true;$("#confirm").disabled=true;$("#err").textContent="";
  pendingKey??=globalThis.crypto?.randomUUID?.()||Date.now()+"-"+Math.random();
- try{const fd=new URLSearchParams({customer_name:name,car_number:car,minutes:mins,request_key:pendingKey});
+ const code=activePromo?.code||"";
+ try{const fd=new URLSearchParams({customer_name:name,car_number:car,minutes:mins,request_key:pendingKey,promo_code:code});
   const r=await fetch("/book/"+sp.id,{method:"POST",headers:{"X-Requested-With":"fetch","X-CSRF-Token":CSRF_TOKEN},body:fd});
   if(r.status==401){location.href="/login?next=/";return}
-  if(!r.ok){if(r.status===409){selectedSpotId=null;selectionLost=true;pendingKey=null;await poll();renderSpaces();fillBook();$("#err").textContent=t("selectionLost")}else $("#err").textContent=await r.text();return}
+  if(!r.ok){if(r.status===409){selectedSpotId=null;selectionLost=true;pendingKey=null;await poll();renderSpaces();fillBook();$("#err").textContent=t("selectionLost")}else if(r.status===422){$("#err").textContent=t("promoUnavailable")}else $("#err").textContent=await r.text();return}
   rid=(await r.json()).reservation_id;storage.set(activeKey,String(rid));pendingKey=null;++pollVersion;
+  if(code&&activePromo?.code===code){setPromo(null);$("#promoInput").value=""}
   const bookedSpot=SPOTS.find(s=>s.id===sp.id);if(bookedSpot){bookedSpot.free=false;bookedSpot.status="Reserved"}last=JSON.stringify(SPOTS);render();
   await refreshBookings();openBooking(rid);$("#plate").value="";
  }catch(e){$("#err").textContent=t("network");refreshBookings().catch(()=>{})}
@@ -433,6 +593,7 @@ async function poll(){if(document.hidden)return;
 setInterval(poll,4000);document.addEventListener("visibilitychange",poll);
 render();
 const restored=Number(storage.get(activeKey));if(BOOKINGS.some(b=>b.id===restored))openBooking(restored);
+if(new URLSearchParams(location.search).get("pane")==="promos")show("promos");
 async function loadFx(){try{const r=await fetch("/api/exchange-rate");if(r.ok){fx=await r.json();render();if(cur&&$("#sheet").classList.contains("on"))openSheet(cur)}}catch{}}
 loadFx();
 const mapReady=initMap();

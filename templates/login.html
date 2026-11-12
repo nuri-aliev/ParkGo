@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>ParkGo - Login</title>
+<link rel="stylesheet" href="/static/theme.css">
 <style>
-:root{--g:#17964a;--gl:#e3f4e8;--ink:#16211b;--mut:#7a867f;--bg:#f4f8f5;--ln:#e1e8e3;--rd:#dc4b4b;--am:#e8a62a;--f:"Inter","Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif}
 *{box-sizing:border-box}
-html,body{margin:0;background:#dfe6e1;font-family:var(--f);color:var(--ink)}
+html,body{margin:0;background:#eee9e4;font-family:var(--f);color:var(--ink)}
 button,input{font:inherit}
 #app{max-width:430px;min-height:100dvh;margin:0 auto;background:var(--bg);padding:calc(24px + env(safe-area-inset-top)) 20px 30px;box-shadow:0 0 40px #0002}
 .top{display:flex;justify-content:space-between;align-items:center}
@@ -24,8 +24,8 @@ h1{font-weight:500;font-size:32px;margin:34px 0 6px;letter-spacing:-.02em}
 .seg button.on{background:var(--ink);color:#fff}
 label{display:block;font-size:13px;font-weight:600;color:var(--mut);margin:14px 0 6px}
 input{width:100%;height:58px;border-radius:16px;border:1px solid var(--ln);padding:0 16px;font-size:17px;background:#fff;color:var(--ink)}
-input:focus-visible,button:focus-visible,a:focus-visible{outline:3px solid var(--am);outline-offset:2px}
-.cta{width:100%;height:56px;border:0;border-radius:18px;background:var(--g);color:#fff;font-weight:800;font-size:15px;text-transform:uppercase;margin-top:22px;cursor:pointer;box-shadow:0 8px 20px #17964a44}
+input:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid var(--g);outline-offset:2px}
+.cta{width:100%;height:56px;border:0;border-radius:18px;background:var(--g);color:#fff;font-weight:800;font-size:15px;text-transform:uppercase;margin-top:22px;cursor:pointer;box-shadow:0 8px 20px #A7442F24}
 .err{background:#fbe2e2;color:var(--rd);border-radius:14px;padding:12px 14px;font-weight:600;font-size:14px;margin-bottom:6px}
 .note{font-size:12px;color:var(--mut);margin-top:14px}
 a{color:var(--g);font-weight:700}
@@ -34,7 +34,7 @@ form{display:none}form.on{display:block}
 </head>
 <body>
 <div id="app">
-  <div class="top"><div class="brand"><span class="mark"><img src="/static/images/parkgo-logo.jpg" alt=""></span>ParkGo</div><div class="lang" id="lang"></div></div>
+  <div class="top"><div class="brand"><span class="mark"><img src="/static/images/parkgo-mark.svg" alt=""></span>ParkGo</div><div class="lang" id="lang"></div></div>
   <h1 id="h"></h1><p class="sub" id="s"></p>
   <div class="seg"><button type="button" data-m="login" id="b1"></button><button type="button" data-m="register" id="b2"></button></div>
   {% if error %}<div class="err">{{ error }}</div>{% endif %}
