@@ -4,7 +4,7 @@
   const animations = new Map();
   const ease = 'cubic-bezier(.2,.8,.2,1)';
 
-  function play(element, frames, duration = 260, complete = () => {}) {
+  function play(element, frames, duration = 260, complete = () => {}, easing = ease) {
     if (!element) return;
     const previous = animations.get(element);
     if (previous) {
@@ -19,7 +19,7 @@
       complete();
       return;
     }
-    const animation = element.animate(frames, {duration, easing: ease, fill: 'both'});
+    const animation = element.animate(frames, {duration, easing, fill: 'both'});
     animations.set(element, animation);
     animation.onfinish = () => {
       if (animations.get(element) !== animation) return;
@@ -72,13 +72,63 @@
     }
   }
 
-  function finishLoading() {
-    const loader = document.querySelector('#loader');
-    if (!loader || loader.hidden || loader.dataset.leaving) return;
-    loader.dataset.leaving = 'true';
-    loader.style.pointerEvents = 'none';
-    play(loader, [{opacity: 1}, {opacity: 0}], 180, () => { loader.hidden = true; });
+  const loader = document.querySelector('#loader');
+  const logo = loader?.querySelector('.splash-logo');
+  const app = document.querySelector('#app');
+  const splashStarted = performance.now();
+  let splashTimer = 0;
+  let splashReady = false;
+  if (loader) {
+    if (app) app.inert = true;
+    play(logo, [
+      {opacity: 0, transform: 'rotate(-8deg) scale(.84)'},
+      {opacity: 1, transform: 'rotate(-8deg) scale(1)'}
+    ], 320);
   }
+
+  function hideSplash() {
+    clearTimeout(splashTimer);
+    for (const element of [logo, loader]) {
+      animations.get(element)?.cancel();
+      animations.delete(element);
+    }
+    loader.hidden = true;
+    if (app) app.inert = false;
+  }
+
+  function finishLoading() {
+    if (!loader || loader.hidden || loader.dataset.leaving) return;
+    splashReady = true;
+    clearTimeout(splashTimer);
+    if (reduced.matches) { hideSplash(); return; }
+    // Let the name resolve before the zoom, without extending a slow load.
+    const remaining = 360 - (performance.now() - splashStarted);
+    if (remaining > 0) {
+      splashTimer = setTimeout(finishLoading, remaining);
+      return;
+    }
+    loader.dataset.leaving = 'true';
+    // The intro has elapsed; discard it even if a background tab skipped frames.
+    animations.get(logo)?.cancel();
+    animations.delete(logo);
+    // The name accelerates towards the viewer, then dissolves into the map.
+    play(logo, [
+      {opacity: 1, transform: 'rotate(-8deg) scale(1)'},
+      {opacity: 1, transform: 'rotate(-8deg) scale(1.18)', offset: .25},
+      {opacity: .9, transform: 'rotate(-8deg) scale(3.2)', offset: .65},
+      {opacity: 0, transform: 'rotate(-8deg) scale(16)'}
+    ], 640, () => {}, 'cubic-bezier(.4,0,.8,.5)');
+    play(loader, [{opacity: 1}, {opacity: 1, offset: .45}, {opacity: 0}], 640, hideSplash, 'ease-in');
+  }
+
+  // A tap or key can finish the introduction as soon as content is ready.
+  loader?.addEventListener('pointerdown', () => { if (splashReady) hideSplash(); });
+  document.addEventListener('keydown', event => {
+    if (loader && !loader.hidden && splashReady && ['Escape', 'Enter', ' '].includes(event.key)) {
+      event.preventDefault();
+      hideSplash();
+    }
+  });
 
   function confirmBooking() {
     const badge = document.querySelector('#done .ok');
@@ -254,6 +304,7 @@
 
   reduced.addEventListener('change', () => {
     if (!reduced.matches) return;
+    if (loader && !loader.hidden && splashReady) hideSplash();
     for (const animation of animations.values()) animation.finish();
     sheetMotion?.finish();
   });
