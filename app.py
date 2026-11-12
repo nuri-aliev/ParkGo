@@ -7,6 +7,10 @@ import sqlite3
 import sys
 import time
 import math
+import smtplib
+from email.message import EmailMessage
+from contextlib import contextmanager
+from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 import urllib.request
 import xml.etree.ElementTree as ET
 from zoneinfo import ZoneInfo
@@ -25,16 +29,17 @@ ALLOWED_DOMAINS = ("astanait.edu.kz",)
 # Секрет датчиков: симулятор шлёт его в заголовке X-Sensor-Token.
 SENSOR_TOKEN = os.environ.get("PARKGO_SENSOR_TOKEN", "parkgo-sensor-demo")
 
-# 7 парковок вокруг Astana IT University (Мангілік Ел 55/11, блок C1, EXPO; ~51.0909, 71.4184):
-# координаты [долгота, широта] и места.
+# Наземные парковки: точки внутри контуров 2ГИС, проверены по снимкам местности.
+# source_id: https://2gis.kz/astana/geo/{source_id}; геометрия в tests/fixtures/parking-areas.json.
+# Ключи сохраняются для совместимости с существующими местами и бронями.
 LOTS = {
-    "Campus North":    {"xy": [71.4184, 51.0925], "price": 500, "spots": ["A01", "A02"]},
-    "Campus South":    {"xy": [71.4196, 51.0890], "price": 400, "spots": ["B01", "B02"]},
-    "Main Building":   {"xy": [71.4190, 51.0906], "price": 600, "spots": ["C01"]},
-    "EXPO East":       {"xy": [71.4210, 51.0912], "price": 450, "spots": ["E01", "E02", "E03", "E04"]},
-    "Mega Silk Way":   {"xy": [71.4170, 51.0893], "price": 600, "spots": ["M01", "M02", "M03", "M04"]},
-    "AITU Gate":       {"xy": [71.4170, 51.0912], "price": 350, "spots": ["G01", "G02", "G03", "G04"]},
-    "Botanical Garden": {"xy": [71.4200, 51.0935], "price": 300, "spots": ["T01", "T02", "T03", "T04"]},
+    "Campus North":    {"xy": [71.420883, 51.092044], "source_id": "70030076312309318", "label": {"ru": "EXPO · северная парковка", "en": "EXPO · north parking"}, "price": 500, "spots": ["A01", "A02"]},
+    "Campus South":    {"xy": [71.421644, 51.089128], "source_id": "70030076143497874", "label": {"ru": "EXPO · южная парковка", "en": "EXPO · south parking"}, "price": 400, "spots": ["B01", "B02"]},
+    "Main Building":   {"xy": [71.420460, 51.090950], "source_id": "70030076137949766", "label": {"ru": "Парковка у AITU", "en": "Parking near AITU"}, "price": 600, "spots": ["C01"]},
+    "EXPO East":       {"xy": [71.422401, 51.091081], "source_id": "70030076137949766", "label": {"ru": "EXPO · восточная парковка", "en": "EXPO · east parking"}, "price": 450, "spots": ["E01", "E02", "E03", "E04"]},
+    "Mega Silk Way":   {"xy": [71.411137, 51.087372], "source_id": "70030076132619133", "label": {"ru": "MEGA Silk Way", "en": "MEGA Silk Way"}, "price": 600, "spots": ["M01", "M02", "M03", "M04"]},
+    "AITU Gate":       {"xy": [71.421279, 51.090759], "source_id": "70030077039973779", "label": {"ru": "Парковка напротив AITU", "en": "Parking opposite AITU"}, "price": 350, "spots": ["G01", "G02", "G03", "G04"]},
+    "Botanical Garden": {"xy": [71.417435, 51.101900], "source_id": "70030076199165565", "label": {"ru": "Ботанический сад · парковка 1370", "en": "Botanical garden · parking 1370"}, "price": 300, "spots": ["T01", "T02", "T03", "T04"]},
 }
 
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
@@ -55,9 +60,32 @@ app.secret_key = get_secret()
 app.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE="Lax")
 
 
+@contextmanager
+def database():
+    con = sqlite3.connect(DB)
+    try:
+        with con:
+            yield con
+    finally:
+        con.close()
+
+
+def csrf_token():
+    return session.setdefault("csrf_token", secrets.token_urlsafe(32))
+
+app.jinja_env.globals["csrf_token"] = csrf_token
+
+@app.before_request
+def protect_csrf():
+    if request.method in ("POST", "PUT", "PATCH", "DELETE") and request.path != "/api/sensor":
+        supplied = request.headers.get("X-CSRF-Token") or request.form.get("csrf_token", "")
+        expected = session.get("csrf_token", "")
+        if not expected or not secrets.compare_digest(expected, supplied):
+            return "Invalid CSRF token.", 403
+
 # --- база данных -----------------------------------------------------------
 def init_db():
-    with sqlite3.connect(DB) as con:
+    with database() as con:
         con.execute("""
             CREATE TABLE IF NOT EXISTS parking_spots (
                 id INTEGER PRIMARY KEY,
@@ -127,7 +155,7 @@ def init_db():
 
 def make_admin(email, password):
     email = email.strip().lower()
-    with sqlite3.connect(DB) as con:
+    with database() as con:
         row = con.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()
         h = generate_password_hash(password)
         if row:
@@ -164,7 +192,7 @@ def current_user():
     uid = session.get("uid")
     if not uid:
         return None
-    with sqlite3.connect(DB) as con:
+    with database() as con:
         con.row_factory = sqlite3.Row
         return con.execute(
             "SELECT id, email, full_name, role FROM users WHERE id = ?", (uid,)
@@ -209,7 +237,7 @@ def login():
     key = f"{email}|{request.remote_addr}"
     if too_many(key):
         return login_page("Too many attempts. Try again in 5 minutes.", status=429)
-    with sqlite3.connect(DB) as con:
+    with database() as con:
         con.row_factory = sqlite3.Row
         row = con.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
     if row and check_password_hash(row["password_hash"], password):
@@ -231,17 +259,51 @@ def register():
         return login_page("Use your university email: @" + ALLOWED_DOMAINS[0], "register", 400)
     if len(password) < 8:
         return login_page("Password must have at least 8 characters.", "register", 400)
+    with database() as con:
+        if con.execute("SELECT 1 FROM users WHERE email = ?", (email,)).fetchone():
+            return login_page("This email is already registered.", "register", 409)
+    token = URLSafeTimedSerializer(app.secret_key, salt="email-verification").dumps(
+        {"email": email, "name": name, "password_hash": generate_password_hash(password),
+         "next": safe_next(request.form.get("next"))})
+    link = url_for("verify_email", token=token, _external=True)
     try:
-        with sqlite3.connect(DB) as con:
-            cur = con.execute(
-                "INSERT INTO users (email, full_name, password_hash, created_at) VALUES (?, ?, ?, ?)",
-                (email, name, generate_password_hash(password), now()),
-            )
+        send_verification_email(email, link)
+    except (OSError, smtplib.SMTPException, ValueError):
+        return login_page("Email verification is unavailable. Please try again later.", "register", 503)
+    return login_page("Check your email for a verification link.", "login")
+
+
+def send_verification_email(email, link):
+    host = os.environ.get("PARKGO_SMTP_HOST")
+    sender = os.environ.get("PARKGO_SMTP_FROM")
+    if not host or not sender:
+        raise ValueError("SMTP not configured")
+    msg = EmailMessage()
+    msg["Subject"] = "ParkGo: verify your email"
+    msg["From"], msg["To"] = sender, email
+    msg.set_content("Verify your email using this link (valid for one hour):\n" + link)
+    with smtplib.SMTP(host, int(os.environ.get("PARKGO_SMTP_PORT", "587")), timeout=10) as smtp:
+        smtp.starttls()
+        if os.environ.get("PARKGO_SMTP_USER"):
+            smtp.login(os.environ["PARKGO_SMTP_USER"], os.environ.get("PARKGO_SMTP_PASSWORD", ""))
+        smtp.send_message(msg)
+
+
+@app.route("/verify-email/<token>")
+def verify_email(token):
+    try:
+        data = URLSafeTimedSerializer(app.secret_key, salt="email-verification").loads(token, max_age=3600)
+    except (BadSignature, SignatureExpired):
+        return login_page("Verification link is invalid or expired.", "register", 400)
+    try:
+        with database() as con:
+            cur = con.execute("INSERT INTO users (email, full_name, password_hash, created_at) VALUES (?, ?, ?, ?)",
+                              (data["email"], data["name"], data["password_hash"], now()))
     except sqlite3.IntegrityError:
-        return login_page("This email is already registered.", "register", 409)
+        return login_page("This email is already registered.", "login", 409)
     session.clear()
     session["uid"] = cur.lastrowid
-    return redirect(safe_next(request.form.get("next")))
+    return redirect(safe_next(data.get("next")))
 
 
 @app.route("/logout")
@@ -261,10 +323,11 @@ def spots_json(con):
 
 @app.route("/")
 def home():
-    with sqlite3.connect(DB) as con:
+    with database() as con:
         spots = spots_json(con)
     return render_template("index.html", spots=spots,
                            lots={k: v["xy"] for k, v in LOTS.items()},
+                           lot_labels={k: v["label"] for k, v in LOTS.items()},
                            user=current_user(), bookings=my_bookings())
 
 
@@ -272,7 +335,7 @@ def my_bookings():
     user = current_user()
     if user is None:
         return []
-    with sqlite3.connect(DB) as con:
+    with database() as con:
         con.row_factory = sqlite3.Row
         rows = con.execute("""SELECT r.*, p.name AS spot, p.location, p.price
             FROM reservations r JOIN parking_spots p ON p.id = r.spot_id
@@ -283,7 +346,7 @@ def my_bookings():
 @app.before_request
 def expire_bookings():
     # Old bookings have no known expiry; keep them until explicitly cancelled.
-    with sqlite3.connect(DB) as con:
+    with database() as con:
         con.execute("BEGIN IMMEDIATE")
         expired = con.execute("SELECT id, spot_id FROM reservations WHERE expires_at <= ?",
                               (int(time.time()),)).fetchall()
@@ -336,7 +399,7 @@ def exchange_rate():
 @app.route("/api/spots")
 def api_spots():
     """Страница опрашивает этот адрес каждые несколько секунд (обновление в реальном времени)."""
-    with sqlite3.connect(DB) as con:
+    with database() as con:
         resp = jsonify(spots_json(con))
     resp.headers["Cache-Control"] = "no-store"
     return resp
@@ -362,7 +425,7 @@ def book(spot_id):
     request_key = request.form.get("request_key", "").strip()[:100] or None
     expires_at = int(time.time()) + minutes * 60
 
-    with sqlite3.connect(DB) as con:
+    with database() as con:
         con.execute("PRAGMA foreign_keys = ON")
         con.execute("BEGIN IMMEDIATE")
         if request_key:
@@ -396,7 +459,7 @@ def cancel(reservation_id):
     user = current_user()
     if user is None:
         return "Please log in.", 401
-    with sqlite3.connect(DB) as con:
+    with database() as con:
         con.execute("BEGIN IMMEDIATE")
         row = con.execute(
             "SELECT spot_id, user_id FROM reservations WHERE id = ?", (reservation_id,)
@@ -417,7 +480,7 @@ def support():
     contact = request.form.get("contact", "").strip()[:80]
     if not message:
         return "Please describe your problem.", 400
-    with sqlite3.connect(DB) as con:
+    with database() as con:
         cur = con.execute(
             "INSERT INTO support_reports (category, message, contact, created_at) VALUES (?, ?, ?, ?)",
             (category, message[:1000], contact, now()),
@@ -438,7 +501,7 @@ def sensor():
         return jsonify(ok=False, error="bad spot_id"), 400
     if status not in ("Occupied", "Available"):
         return jsonify(ok=False, error="status must be Occupied or Available"), 400
-    with sqlite3.connect(DB) as con:
+    with database() as con:
         row = con.execute("SELECT status FROM parking_spots WHERE id = ?", (spot_id,)).fetchone()
         if row is None:
             return jsonify(ok=False, error="spot not found"), 404
@@ -452,7 +515,7 @@ def sensor():
 @app.route("/admin/report/<int:report_id>/resolve", methods=["POST"])
 @admin_required
 def resolve_report(report_id):
-    with sqlite3.connect(DB) as con:
+    with database() as con:
         con.execute("UPDATE support_reports SET status = 'resolved' WHERE id = ?", (report_id,))
     return jsonify(ok=True)
 
@@ -460,7 +523,7 @@ def resolve_report(report_id):
 @app.route("/admin")
 @admin_required
 def admin():
-    with sqlite3.connect(DB) as con:
+    with database() as con:
         con.row_factory = sqlite3.Row
         spots = con.execute("""
             SELECT p.*, r.id AS rid, r.customer_name, r.car_number
@@ -515,5 +578,6 @@ if __name__ == "__main__":
         make_admin(sys.argv[2], sys.argv[3])
         print("Администратор сохранён:", sys.argv[2].lower())
         sys.exit(0)
-    app.run(host="0.0.0.0", port=5000, debug=False)
+    app.run(host=os.environ.get("PARKGO_HOST", "127.0.0.1"),
+            port=int(os.environ.get("PARKGO_PORT", "5050")), debug=False)
 

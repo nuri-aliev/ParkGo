@@ -1,0 +1,16 @@
+[Unit]
+Description=ParkGo parking website
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/nuras/Documents/github/ParkGo
+ExecStart=/home/nuras/Documents/github/ParkGo/start.sh
+Environment=PARKGO_HOST=127.0.0.1
+Environment=PARKGO_PORT=5050
+Restart=on-failure
+RestartSec=5
+UMask=0077
+
+[Install]
+WantedBy=default.target

@@ -40,6 +40,7 @@ form{display:none}form.on{display:block}
   {% if error %}<div class="err">{{ error }}</div>{% endif %}
 
   <form method="post" action="/login" id="f-login" class="{{ 'on' if mode != 'register' else '' }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <input type="hidden" name="next" value="{{ next }}">
     <label for="e1" data-t="email"></label><input id="e1" name="email" type="email" required autocomplete="email">
     <label for="p1" data-t="pass"></label><input id="p1" name="password" type="password" required autocomplete="current-password">
@@ -47,6 +48,7 @@ form{display:none}form.on{display:block}
   </form>
 
   <form method="post" action="/register" id="f-register" class="{{ 'on' if mode == 'register' else '' }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <input type="hidden" name="next" value="{{ next }}">
     <label for="n2" data-t="name"></label><input id="n2" name="full_name" maxlength="80" autocomplete="name">
     <label for="e2" data-t="email"></label><input id="e2" name="email" type="email" required autocomplete="email" placeholder="name@astanait.edu.kz">

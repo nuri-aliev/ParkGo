@@ -121,12 +121,12 @@ input.n{width:100%;height:60px;border-radius:16px;border:1px solid var(--ln);pad
     <div class="me"></div>
   </div>
   <div class="top">
-    <div class="brandrow"><div class="brand"><span class="mark"><img src="/static/images/parkgo-logo.jpg" alt=""></span>ParkGo</div><div class="lang"></div></div>
-    <label class="search"><img class="ui-icon" src="/static/images/search.png" alt=""><input id="q" data-ph="search" autocomplete="off"></label>
+    <div class="brandrow"><div class="brand"><span class="mark"><img src="/static/images/parkgo-logo.jpg" alt="logotype"></span>ParkGo</div><div class="lang"></div></div>
+    <label class="search"><img class="ui-icon" src="/static/images/search.png" alt="search"><input id="q" data-ph="search" autocomplete="off"></label>
     <div class="chips" id="chips"></div>
   </div>
   <button class="peek card" id="peek"></button>
-  <nav class="nav"><button class="on" data-go="home"><img class="ui-icon" src="/static/images/home.png" alt=""><span data-t="map"></span></button><button data-go="support"><img class="ui-icon" src="/static/images/support.png" alt=""><span data-t="support"></span></button></nav>
+  <nav class="nav"><button class="on" data-go="home"><img class="ui-icon" src="/static/images/home.png" alt="home"><span data-t="map"></span></button><button data-go="support"><img class="ui-icon" src="/static/images/support.png" alt="support"><span data-t="support"></span></button></nav>
   <div class="shade" id="shade"></div>
   <div class="sheet" id="sheet"></div>
 </section>
@@ -135,7 +135,7 @@ input.n{width:100%;height:60px;border-radius:16px;border:1px solid var(--ln);pad
 <section class="scr" id="book">
   <div class="bar"><button class="back" id="bback" aria-label="Back">‹</button><h3 data-t="bookTitle"></h3><div class="lang"></div></div>
   <div class="body">
-    <div class="card" style="display:flex;gap:14px;align-items:center;padding:18px"><span class="pbox" style="width:56px;height:56px;font-size:28px"><img src="/static/images/parkgo-logo.jpg" alt=""></span><div><small style="color:var(--mut)" data-t="chosen"></small><b id="bname" style="display:block;font-size:22px"></b><span class="free" id="bfree"></span></div></div>
+    <div class="card" style="display:flex;gap:14px;align-items:center;padding:18px"><span class="pbox" style="width:56px;height:56px;font-size:18px"><img src="/static/images/parkgo-logo.jpg" alt="logo"></span><div><small style="color:var(--mut)" data-t="chosen"></small><b id="bname" style="display:block;font-size:22px"></b><span class="free" id="bfree"></span></div></div>
     <h4 data-t="when"></h4>
     <div class="opts" id="opts"></div>
     <h4 data-t="yourName"></h4>
@@ -156,7 +156,7 @@ input.n{width:100%;height:60px;border-radius:16px;border:1px solid var(--ln);pad
   <p class="sub" style="margin:22px 0 4px" data-t="confirmed"></p>
   <h1 data-t="booked"></h1>
   <div class="ticket card">
-    <div class="shead"><div><small id="dloc"></small><h2 id="dspot"></h2></div><span class="pbox"><img src="/static/images/parkgo-logo.jpg" alt=""></span></div>
+    <div class="shead"><div><small id="dloc"></small><h2 id="dspot"></h2></div><span class="pbox"><img src="/static/images/parkgo-logo.jpg" alt="logo"></span></div>
     <div class="until"><span data-t="until"></span><b id="duntil"></b></div>
     <div class="qr" id="qr"></div>
     <p style="text-align:center;font-size:12px;color:var(--mut);margin:8px 0 0" data-t="showQr"></p>
@@ -168,13 +168,13 @@ input.n{width:100%;height:60px;border-radius:16px;border:1px solid var(--ln);pad
 
 <!-- SUPPORT -->
 <section class="scr" id="support" style="background:var(--bg)">
-  <div class="shead2"><div class="lang" style="position:absolute;right:14px;top:calc(14px + env(safe-area-inset-top))"></div><span class="sicon"><img src="/static/images/support.png" alt=""></span><h1 data-t="help"></h1><p data-t="helpSub"></p></div>
+  <div class="shead2"><div class="lang" style="position:absolute;right:14px;top:calc(14px + env(safe-area-inset-top))"></div><span class="sicon"><img src="/static/images/support.png" alt="support"></span><h1 data-t="help"></h1><p data-t="helpSub"></p></div>
   <div class="body">
     <h4 style="margin-top:4px" data-t="helpH"></h4>
     <ul class="list card"><li><div><b data-t="faq"></b><span data-t="faqS"></span></div>›</li><li><div><b data-t="bIssue"></b><span data-t="bIssueS"></span></div>›</li><li><div><b data-t="pIssue"></b><span data-t="pIssueS"></span></div>›</li></ul>
     <div class="contact"><div><b data-t="contact"></b><br><span style="font-size:13px;color:var(--mut)" data-t="contactS"></span></div><span class="on-badge">Online</span></div>
   </div>
-  <nav class="nav" style="position:static"><button data-go="home"><img class="ui-icon" src="/static/images/home.png" alt=""><span data-t="map"></span></button><button class="on" data-go="support"><img class="ui-icon" src="/static/images/support.png" alt=""><span data-t="support"></span></button></nav>
+  <nav class="nav" style="position:static"><button data-go="home"><img class="ui-icon" src="/static/images/home.png" alt="home"><span data-t="map"></span></button><button class="on" data-go="support"><img class="ui-icon" src="/static/images/support.png" alt="support"><span data-t="support"></span></button></nav>
 </section>
 </div>
 
@@ -202,11 +202,11 @@ function render(){
   b.className=`pin ${cls(d.n)} ${cur==l?"sel":""}`;b.style.left=p[0]+"%";b.style.top=p[1]+"%";b.innerHTML=`<small>P</small>${d.n}`;b.onclick=()=>openSheet(l);$("#map").append(b)});
  const pk=cur&&vis.includes(cur)?cur:vis[0];
  $("#peek").style.display=pk?"flex":"none";
- if(pk){const d=info(pk);$("#peek").innerHTML=`<span class="pbox"><img src="/static/images/parkgo-logo.jpg" alt=""></span><div><b>${pk}</b><span class="free" style="${d.n?"":"color:var(--rd)!important"}">● ${d.n?t("free")(d.n):t("full")}</span></div><span style="margin-left:auto;font-size:22px">›</span>`;$("#peek").onclick=()=>openSheet(pk)}
+ if(pk){const d=info(pk);$("#peek").innerHTML=`<span class="pbox"><img src="/static/images/parkgo-logo.jpg" alt="logo"></span><div><b>${pk}</b><span class="free" style="${d.n?"":"color:var(--rd)!important"}">● ${d.n?t("free")(d.n):t("full")}</span></div><span style="margin-left:auto;font-size:22px">›</span>`;$("#peek").onclick=()=>openSheet(pk)}
  if(cur)fillBook();
 }
 function openSheet(l){cur=l;const d=info(l),nx=d.free[0];
- $("#sheet").innerHTML=`<div class="grab"></div><div class="shead"><div><div class="sub">${d.loc.toUpperCase()}</div><h2>${l}</h2></div><span class="pbox" style="width:56px;height:56px;font-size:28px"><img src="/static/images/parkgo-logo.jpg" alt=""></span></div>
+ $("#sheet").innerHTML=`<div class="grab"></div><div class="shead"><div><div class="sub">${d.loc.toUpperCase()}</div><h2>${l}</h2></div><span class="pbox" style="width:56px;height:56px;font-size:28px"><img src="/static/images/parkgo-logo.jpg" alt="logo"></span></div>
  <span class="pill">● ${d.n?t("free")(d.n):t("full")}</span><span style="color:var(--mut)">${t("of")} ${d.all.length}</span>
  <div class="grid"><div class="tile"><span>${t("total")}</span><b>${d.all.length}</b></div><div class="tile"><span>${t("rate")}</span><b>${d.price} ${t("h")}</b></div></div>
  <div class="two"><button class="cta" id="sbook" ${d.n?"":"disabled"}>${t("book")}</button><a class="cta dark" target="_blank" rel="noopener" style="text-decoration:none" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(l)}">${t("go2")}</a></div>`;

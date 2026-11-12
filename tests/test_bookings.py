@@ -20,7 +20,8 @@ class BookingTests(unittest.TestCase):
             con.execute("UPDATE parking_spots SET status='Available'")
             for uid in [101, 102]:
                 con.execute("INSERT OR IGNORE INTO users (id,email,password_hash,role,created_at) VALUES (?,?,'test','user','2026-01-01')",(uid,f'{uid}@astanait.edu.kz'))
-        with self.client.session_transaction() as sess: sess['uid']=101
+        with self.client.session_transaction() as sess: sess['uid']=101; sess['csrf_token']='test-token'
+        self.client.environ_base['HTTP_X_CSRF_TOKEN']='test-token'
 
     def book(self, spot, key='one', minutes=30, client=None):
         return (client or self.client).post(f'/book/{spot}', data=dict(customer_name='Test',car_number='123 ABC',minutes=minutes,request_key=key),headers={'X-Requested-With':'fetch'})
@@ -33,7 +34,8 @@ class BookingTests(unittest.TestCase):
         self.assertNotIn('class="adm"',page)
         self.assertEqual(self.client.get('/admin').status_code,403)
         other=park.app.test_client()
-        with other.session_transaction() as sess: sess['uid']=102
+        with other.session_transaction() as sess: sess['uid']=102; sess['csrf_token']='test-token'
+        other.environ_base['HTTP_X_CSRF_TOKEN']='test-token'
         self.assertEqual(other.get('/api/reservations').json,[])
         self.assertEqual(other.post(f'/cancel/{a}').status_code,403)
         self.assertEqual(self.client.post(f'/cancel/{a}').status_code,200)
@@ -62,7 +64,8 @@ class BookingTests(unittest.TestCase):
     def test_competing_bookings(self):
         def attempt(uid):
             client=park.app.test_client()
-            with client.session_transaction() as sess: sess['uid']=uid
+            with client.session_transaction() as sess: sess['uid']=uid; sess['csrf_token']='test-token'
+            client.environ_base['HTTP_X_CSRF_TOKEN']='test-token'
             return self.book(1,str(uid),client=client).status_code
         with ThreadPoolExecutor(2) as pool: results=list(pool.map(attempt,[101,102]))
         self.assertEqual(sorted(results),[200,409])

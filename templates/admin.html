@@ -136,11 +136,12 @@ h1{margin:0;font-size:30px;font-weight:500;letter-spacing:-.02em}
 </div>
 
 <script>
+const CSRF_TOKEN={{ csrf_token()|tojson }};
 function go(p){document.querySelectorAll(".pane").forEach(e=>e.classList.toggle("on",e.id==p));document.querySelectorAll(".tab").forEach(e=>e.classList.toggle("on",e.dataset.p==p));sessionStorage.setItem("adm",p);scrollTo(0,0)}
 document.addEventListener("click",async e=>{
  const p=e.target.closest("[data-p]");if(p){go(p.dataset.p);return}
- const r=e.target.closest("[data-release]");if(r){if(!confirm("Release this spot?"))return;await fetch("/cancel/"+r.dataset.release,{method:"POST"});location.reload();return}
- const s=e.target.closest("[data-resolve]");if(s){await fetch("/admin/report/"+s.dataset.resolve+"/resolve",{method:"POST"});location.reload()}});
+ const r=e.target.closest("[data-release]");if(r){if(!confirm("Release this spot?"))return;await fetch("/cancel/"+r.dataset.release,{method:"POST",headers:{"X-CSRF-Token":CSRF_TOKEN}});location.reload();return}
+ const s=e.target.closest("[data-resolve]");if(s){await fetch("/admin/report/"+s.dataset.resolve+"/resolve",{method:"POST",headers:{"X-CSRF-Token":CSRF_TOKEN}});location.reload()}});
 go(sessionStorage.getItem("adm")||"dash");
 </script>
 </body>

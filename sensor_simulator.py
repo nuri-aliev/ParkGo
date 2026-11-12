@@ -13,7 +13,7 @@ import sys
 import time
 import urllib.request
 
-URL = sys.argv[1] if len(sys.argv) > 1 else "http://127.0.0.1:5000"
+URL = sys.argv[1] if len(sys.argv) > 1 else "http://127.0.0.1:" + os.environ.get("PARKGO_PORT", "5050")
 TOKEN = os.environ.get("PARKGO_SENSOR_TOKEN", "parkgo-sensor-demo")
 PAUSE = (float(os.environ.get("SENSOR_MIN", 3)), float(os.environ.get("SENSOR_MAX", 6)))
 
