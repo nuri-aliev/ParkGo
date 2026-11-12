@@ -1,0 +1,57 @@
+/* Motion only changes transform and opacity on moving surfaces. */
+.scr.on { z-index: 2; }
+.scr.motion-out { display: flex; z-index: 1; pointer-events: none; }
+.scr { background: var(--bg); }
+
+.nav { isolation: isolate; }
+#support > .nav, #promos > .nav { position: relative; }
+.nav button { position: relative; z-index: 1; }
+.nav-indicator {
+  position: absolute;
+  left: 4px;
+  top: 4px;
+  bottom: calc(5px + env(safe-area-inset-bottom));
+  width: calc((100% - 8px) / 4);
+  background: var(--gl);
+  border-radius: 12px;
+  transform: translateX(calc(var(--nav-index) * 100%));
+  pointer-events: none;
+}
+
+#sheet { padding-top: 0; transition: none; }
+.sheet-handle {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 32px;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.sheet-handle::before {
+  content: '';
+  width: 38px;
+  height: 4px;
+  border-radius: 99px;
+  background: #c4b7af;
+}
+.sheet-handle:active { cursor: grabbing; }
+.sheet-handle:focus-visible { outline-offset: -4px; border-radius: 8px; }
+#sheetContent { padding-top: 4px; }
+
+@media (prefers-reduced-motion: no-preference) {
+  :is(.cta, .btn, .back, .opt, .chip, .nav button, .tab, .booking-item, .contact, .li, .adm, .seg button, .lang button, .parking-bay) {
+    transition: scale 180ms cubic-bezier(.2,.8,.2,1), background-color 160ms ease, color 160ms ease;
+  }
+  :is(.cta, .btn, .back, .opt, .chip, .nav button, .tab, .booking-item, .contact, .li, .adm, .seg button, .lang button, .parking-bay):active:not(:disabled) {
+    scale: .97;
+    transition-duration: 70ms;
+  }
+  .peek:active { scale: .985; }
+  .peek { transition: scale 160ms ease; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-indicator, .sheet-handle, .scr, .cta, .parking-bay { transition: none; }
+}

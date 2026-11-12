@@ -30,6 +30,7 @@ async function startRoute(l){
  const revision=++routeRevision;
  routeReturn=$(".scr.on")?.id||"home";routeDestination=l;routePicking=false;
  show("home");$("#app").classList.add("route-view");$("#routePanel").hidden=false;render();
+ window.ParkGoMotion?.reveal($("#routePanel"));
  $("#routeDestination").textContent=lotName(l);$("#routeExternal").href=navUrl(l);
  $("#locateRoute").disabled=true;$("#pickRoute").disabled=true;routeMessage("loading");
  await mapReady;

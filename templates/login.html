@@ -31,6 +31,7 @@ input:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid var(-
 a{color:var(--g);font-weight:700}
 form{display:none}form.on{display:block}
 </style>
+<link rel="stylesheet" href="/static/motion.css">
 </head>
 <body>
 <div id="app">
@@ -58,6 +59,7 @@ form{display:none}form.on{display:block}
   <p class="note" data-t="hash"></p>
   <p class="note"><a href="/" data-t="back"></a></p>
 </div>
+<script src="/static/motion.js"></script>
 <script>
 const T={ru:{h:"Вход в ParkGo",s:"Войдите, чтобы бронировать места",b1:"Вход",b2:"Регистрация",email:"Университетская почта",pass:"Пароль",pass8:"Пароль (минимум 8 символов)",name:"Имя",signin:"Войти",signup:"Создать аккаунт",hash:"Пароли хранятся только в виде хеша, мы не видим ваш пароль.",back:"На карту"},
 en:{h:"Log in to ParkGo",s:"Log in to book parking spots",b1:"Log in",b2:"Register",email:"University email",pass:"Password",pass8:"Password (at least 8 characters)",name:"Name",signin:"Log in",signup:"Create account",hash:"Passwords are stored only as a hash. We never see your password.",back:"Back to map"}};
@@ -71,7 +73,7 @@ function render(){document.documentElement.lang=lang;
  $("#b1").classList.toggle("on",m=="login");$("#b2").classList.toggle("on",m=="register")}
 document.addEventListener("click",e=>{
  const l=e.target.closest("[data-l]");if(l){lang=l.dataset.l;localStorage.setItem("pg-lang",lang);render()}
- const m=e.target.closest("[data-m]");if(m){$("#f-login").classList.toggle("on",m.dataset.m=="login");$("#f-register").classList.toggle("on",m.dataset.m=="register");render()}});
+ const m=e.target.closest("[data-m]");if(m){const previous=$("form.on");$("#f-login").classList.toggle("on",m.dataset.m=="login");$("#f-register").classList.toggle("on",m.dataset.m=="register");render();const next=$("form.on");if(previous!==next)window.ParkGoMotion?.reveal(next)}});
 render();
 </script>
 </body>

@@ -1,6 +1,7 @@
 {% from "icons.html" import icon %}
 {% macro navigation(active) -%}
 <nav class="nav material">
+  <span class="nav-indicator" style="--nav-index:{{ {'home': 0, 'support': 2, 'promos': 3}[active] }}" aria-hidden="true"></span>
   <button class="{{ 'on' if active == 'home' }}" {% if active == 'home' %}aria-current="page"{% endif %} data-go="home">{{ icon('map') }}<span data-t="map"></span></button>
   <button data-go="bookings">{{ icon('ticket') }}<span data-t="myBookings"></span></button>
   <button class="{{ 'on' if active == 'support' }}" {% if active == 'support' %}aria-current="page"{% endif %} data-go="support">{{ icon('support') }}<span data-t="support"></span></button>
@@ -154,6 +155,7 @@ input.n{width:100%;height:60px;border-radius:16px;border:1px solid var(--ln);pad
 .ev-details{margin:-2px 0 12px;color:var(--mut);font-size:.82rem;line-height:1.4}
 .ev-details a{color:var(--gd)}
 </style>
+<link rel="stylesheet" href="/static/motion.css">
 </head>
 <body>
 <div id="loader" role="status"><div class="spinner"></div><b>ParkGo</b><span>Загрузка / Loading…</span></div>
@@ -178,7 +180,10 @@ input.n{width:100%;height:60px;border-radius:16px;border:1px solid var(--ln);pad
   <button class="peek card" id="peek"></button>
   {{ navigation('home') }}
   <div class="shade" id="shade"></div>
-  <div class="sheet material" id="sheet" inert></div>
+  <div class="sheet material" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" inert>
+    <button class="sheet-handle" id="sheetHandle" type="button" aria-label="Закрыть карточку / Close parking details"></button>
+    <div id="sheetContent"></div>
+  </div>
   <aside class="route-panel" id="routePanel" hidden>
     <div class="route-heading"><button class="back" id="closeRoute" aria-label="Назад / Back">{{ icon("back") }}</button><div><h2 data-t="routeTitle"></h2><p id="routeDestination"></p></div></div>
     <div class="route-actions"><button id="locateRoute" data-t="routeLocate"></button><button id="pickRoute" data-t="routePick"></button></div>
@@ -293,6 +298,7 @@ input.n{width:100%;height:60px;border-radius:16px;border:1px solid var(--ln);pad
 </section>
 </div>
 
+<script src="/static/motion.js"></script>
 <script>
 const SPOTS={{ spots|tojson }};
 const CSRF_TOKEN={{ csrf_token()|tojson }};
@@ -309,7 +315,10 @@ let gmap=null,gmarks=[];
 let BOOKINGS={{ bookings|tojson }},fx=null;
 const storage={get(k){try{return localStorage.getItem(k)}catch{return null}},set(k,v){try{localStorage.setItem(k,v)}catch{}}};
 const activeKey="pg-active-"+USER;
-function finishLoading(){document.querySelector("#loader").hidden=true}
+function finishLoading(){
+ if(window.ParkGoMotion)window.ParkGoMotion.finishLoading();
+ else document.querySelector("#loader").hidden=true;
+}
 setTimeout(finishLoading,6000);
 function pinIcon(n,sel,charging){
  const color=n===0?"#524945":n===1?"#8d6025":"#A7442F";
@@ -404,7 +413,11 @@ function bookingEstimate(hourly){
 }
 
 const cls=n=>n==0?"no":n==1?"mid":"ok";
-function show(id){closeSheet();$$(".scr").forEach(s=>s.classList.toggle("on",s.id==id));
+function show(id){
+ closeSheet(true);
+ const previous=$(".scr.on"),next=document.getElementById(id);
+ if(window.ParkGoMotion)window.ParkGoMotion.navigate(previous,next);
+ else $$(".scr").forEach(s=>s.classList.toggle("on",s.id==id));
  $("#app").classList.toggle("spaces-view",id==="spaces");
  if(id==="spaces")renderSpaces();
  if(id==="home")requestAnimationFrame(()=>{gmap?.invalidateSize();if(gmap&&filt==="all"&&!$("#app").classList.contains("route-view"))fitParkingLots()});
@@ -483,15 +496,19 @@ function render(){
  if(USER)$("#acct b").textContent=USER;
 }
 function openSheet(l){cur=l;const d=info(l);
- $("#sheet").innerHTML=`<div class="shead"><h2>${lotName(l)}</h2></div>
+ $("#sheetContent").innerHTML=`<div class="shead"><h2 id="sheetTitle">${lotName(l)}</h2></div>
  <span class="pill">${d.n?t("free")(d.n):t("full")}</span><span style="color:var(--mut)">${t("of")} ${d.all.length}</span>
  ${evLabel(d)?`<div class="ev-details">${evBadge(d)}${d.evNearby?`<br>${t("evLocation")} <a href="${EXPO_CHARGING}" target="_blank" rel="noopener">${t("evSource")}</a>`:""}</div>`:""}
  <div class="grid"><div class="tile"><span>${t("total")}</span><b>${d.all.length}</b></div><div class="tile"><span>${t("rate")}</span><b>${price(d.price)}</b></div></div>
  <p style="font-size:12px;color:var(--mut)">${lang==="en"?(fx?`Approximate USD · NBK ${fx.date} · Payment in KZT`:"USD estimate unavailable · Payment in KZT"):""}</p>
  <div class="two"><button class="cta" id="sbook" ${d.n?"":"disabled"}>${t("book")}</button><button class="cta dark" id="sroute">${t("go2")}</button></div>`;
- $("#sheet").inert=false;$("#sheet").classList.add("on");$("#shade").classList.add("on");
+ if(window.ParkGoMotion?.sheet)window.ParkGoMotion.sheet.open();
+ else {$("#sheet").inert=false;$("#sheet").classList.add("on");$("#shade").classList.add("on")}
  $("#sbook").onclick=()=>openSpaces(l);$("#sroute").onclick=()=>startRoute(l);render()}
-function closeSheet(){$("#sheet").inert=true;$("#sheet").classList.remove("on");$("#shade").classList.remove("on")}
+function closeSheet(immediate=false){
+ if(window.ParkGoMotion?.sheet)window.ParkGoMotion.sheet.close(immediate);
+ else {$("#sheet").inert=true;$("#sheet").classList.remove("on");$("#shade").classList.remove("on")}
+}
 function chosenSpot(){return cur?groups[cur]?.find(s=>s.id===selectedSpotId&&s.free):null}
 function openSpaces(l){if(cur!==l)selectedSpotId=null;cur=l;selectionLost=false;renderSpaces();show("spaces")}
 function renderSpaces(){if(!cur)return;const d=info(cur);
@@ -519,7 +536,7 @@ function fillBook(){if(!cur)return;const d=info(cur);
  if(selectionLost)$("#err").textContent=t("selectionLost");
  $("#opts").innerHTML=[[15,"now"],[30,"m30"],[60,"h1"],[120,"h2"]].map(([m,k])=>`<button class="opt ${m==mins?"on":""}" data-m="${m}">${t(k)}</button>`).join("")}
 document.addEventListener("click",e=>{
- const bay=e.target.closest("[data-spot]");if(bay){const sp=groups[cur]?.find(s=>s.id===+bay.dataset.spot);if(sp?.free){selectedSpotId=sp.id;selectionLost=false;pendingKey=null;renderSpaces();fillBook()}return}
+ const bay=e.target.closest("[data-spot]");if(bay){const sp=groups[cur]?.find(s=>s.id===+bay.dataset.spot);if(sp?.free){selectedSpotId=sp.id;selectionLost=false;pendingKey=null;renderSpaces();fillBook();window.ParkGoMotion?.selectSpot($(`[data-spot="${sp.id}"]`))}return}
  const sp=e.target.closest("[data-sup]");if(sp){const k=sp.dataset.sup;if(k=="faq")show("faq");else{tcat=k;setTicket();$("#terr").textContent="";show("ticket")}return}
  const g=e.target.closest("[data-go]");if(g){
   if(g.dataset.go==="promos"&&!$("#promos").classList.contains("on"))promoReturn=$(".scr.on").id;
@@ -528,7 +545,8 @@ document.addEventListener("click",e=>{
  const l=e.target.closest("[data-l]");if(l){lang=l.dataset.l;storage.set("pg-lang",lang);render();if(cur&&$("#sheet").classList.contains("on"))openSheet(cur);return}
  const f=e.target.closest("[data-f]");if(f){filt=f.dataset.f;render();if(gmap){if(filt==="all")fitParkingLots();else if(COORD[filt]){gmap.setCenter(COORD[filt]);gmap.setZoom(18)}}return}
  const o=e.target.closest("[data-m]");if(o&&!busy){if(mins!==+o.dataset.m)pendingKey=null;mins=+o.dataset.m;fillBook()}});
-$("#shade").onclick=closeSheet;$("#q").oninput=render;$("#bback").onclick=()=>show("spaces");
+$("#shade").onclick=()=>closeSheet();$("#q").oninput=render;$("#bback").onclick=()=>show("spaces");
+if(!window.ParkGoMotion)$("#sheetHandle").onclick=()=>closeSheet();
 document.addEventListener("keydown",event=>{if(event.key==="Escape"&&$("#sheet").classList.contains("on"))closeSheet()});
 $("#promoBack").onclick=()=>show(promoReturn);
 let pendingKey=null;
@@ -546,7 +564,7 @@ if(USER){
    if(response.status===401){location.href="/login?next=/?pane=promos";return}
    if(response.status===404){promoError="promoUnavailable";return}
    if(!response.ok)throw new Error();
-   const promo=await response.json();input.value=promo.code;setPromo(promo);
+   const promo=await response.json();input.value=promo.code;setPromo(promo);window.ParkGoMotion?.reveal($("#promoFeedback"));
   }catch{promoError="network"}
   finally{button.disabled=false;input.readOnly=false;renderPromo()}
  };
@@ -564,7 +582,7 @@ $("#confirm").onclick=async()=>{
   rid=(await r.json()).reservation_id;storage.set(activeKey,String(rid));pendingKey=null;++pollVersion;
   if(code&&activePromo?.code===code){setPromo(null);$("#promoInput").value=""}
   const bookedSpot=SPOTS.find(s=>s.id===sp.id);if(bookedSpot){bookedSpot.free=false;bookedSpot.status="Reserved"}last=JSON.stringify(SPOTS);render();
-  await refreshBookings();openBooking(rid);$("#plate").value="";
+  await refreshBookings();openBooking(rid);window.ParkGoMotion?.confirmBooking();$("#plate").value="";
  }catch(e){$("#err").textContent=t("network");refreshBookings().catch(()=>{})}
  finally{busy=false;$("#confirm").disabled=!chosenSpot()}
 };

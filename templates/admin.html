@@ -63,6 +63,7 @@ h1{margin:0;font-size:30px;font-weight:500;letter-spacing:-.02em}
 .charging-row form{flex:none}
 .charging-row .btn{background:var(--gl);color:var(--gd)}
 </style>
+<link rel="stylesheet" href="/static/motion.css">
 </head>
 <body>
 <div id="app">
@@ -197,11 +198,13 @@ h1{margin:0;font-size:30px;font-weight:500;letter-spacing:-.02em}
 </section>
 </div>
 
+<script src="/static/motion.js"></script>
 <script>
 const CSRF_TOKEN={{ csrf_token()|tojson }};
 function go(p){
  const panes=[...document.querySelectorAll(".pane")];
  if(!panes.some(e=>e.id===p))p="dash";
+ const previous=document.querySelector('.pane.on');
  panes.forEach(e=>e.classList.toggle("on",e.id===p));
  document.querySelectorAll(".tab").forEach(e=>{
   const active=e.dataset.p===p;e.classList.toggle("on",active);
@@ -209,6 +212,7 @@ function go(p){
   else e.removeAttribute("aria-current");
  });
  sessionStorage.setItem("adm",p);scrollTo(0,0);
+ if(previous?.id!==p)window.ParkGoMotion?.reveal(document.getElementById(p));
 }
 document.addEventListener("click",async e=>{
  const p=e.target.closest("[data-p]");if(p){go(p.dataset.p);return}
