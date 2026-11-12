@@ -1,8 +1,18 @@
 import unittest
+import os
 from unittest.mock import patch
 from test_bookings import park, BookingTests
 
 class SecurityTests(BookingTests):
+    def setUp(self):
+        super().setUp()
+        env = patch.dict(os.environ, {
+            'PARKGO_REGISTRATION_MODE': 'verified', 'PARKGO_SMTP_HOST': 'smtp.example.test',
+            'PARKGO_SMTP_FROM': 'parkgo@example.test', 'PARKGO_SMTP_PORT': '587',
+            'PARKGO_SMTP_SECURITY': 'starttls', 'PARKGO_PUBLIC_URL': ''})
+        env.start()
+        self.addCleanup(env.stop)
+
     def test_cross_site_post_is_rejected(self):
         response = self.client.post('/cancel/1', headers={'X-CSRF-Token': '', 'Origin': 'https://evil.example'})
         self.assertEqual(response.status_code, 403)

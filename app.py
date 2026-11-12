@@ -10,9 +10,11 @@ import sys
 import time
 import math
 import smtplib
+import ssl
+import hashlib
+from urllib.parse import urlsplit
 from email.message import EmailMessage
 from contextlib import contextmanager
-from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 import urllib.request
 import xml.etree.ElementTree as ET
 from zoneinfo import ZoneInfo
@@ -51,6 +53,18 @@ PROMO_CODE_RE = re.compile(r"[A-Z0-9][A-Z0-9-]{2,31}")
 PROMO_LIMITS = {"percent": 100, "fixed": 100000, "minutes": 240}
 EXPO_CHARGING = "https://edrive.kz/maps/?city=1&local=0"
 FAILS = {}  # защита входа от подбора пароля: {ключ: [время неудачных попыток]}
+AUTH_RU = {
+    "Enter a valid email.": "Введите корректный адрес почты.",
+    "Use your university email: @astanait.edu.kz": "Используйте университетскую почту @astanait.edu.kz.",
+    "Password must have at least 8 characters.": "Пароль должен содержать минимум 8 символов.",
+    "This email is already registered.": "Эта почта уже зарегистрирована. Войдите в аккаунт.",
+    "Too many attempts. Try again in 5 minutes.": "Слишком много попыток. Попробуйте через 5 минут.",
+    "Wrong email or password.": "Неверная почта или пароль.",
+    "Email verification is not configured. Please contact the administrator.": "Отправка писем не настроена. Обратитесь к администратору ParkGo.",
+    "Could not send the verification email. Please try again or contact the administrator.": "Не удалось отправить письмо. Попробуйте ещё раз или обратитесь к администратору ParkGo.",
+    "Check your email for a verification link.": "Письмо отправлено. Откройте ссылку для подтверждения почты; проверьте также папку «Спам».",
+    "Verification link is invalid or expired.": "Ссылка недействительна или срок её действия истёк. Пройдите регистрацию ещё раз.",
+}
 
 
 def get_secret():
@@ -87,7 +101,7 @@ def protect_csrf():
     if request.method in ("POST", "PUT", "PATCH", "DELETE") and request.path != "/api/sensor":
         supplied = request.headers.get("X-CSRF-Token") or request.form.get("csrf_token", "")
         expected = session.get("csrf_token", "")
-        if not expected or not secrets.compare_digest(expected, supplied):
+        if not expected or not secrets.compare_digest(expected.encode(), supplied.encode()):
             return "Invalid CSRF token.", 403
 
 # --- база данных -----------------------------------------------------------
@@ -137,6 +151,10 @@ def init_db():
                 uses INTEGER NOT NULL DEFAULT 0 CHECK (uses BETWEEN 0 AND max_uses)
             )""")
         con.execute("CREATE TABLE IF NOT EXISTS ev_charging_lots (location TEXT PRIMARY KEY)")
+        con.execute("""CREATE TABLE IF NOT EXISTS pending_registrations (
+            token_hash TEXT PRIMARY KEY, email TEXT NOT NULL, full_name TEXT,
+            password_hash TEXT NOT NULL, next_path TEXT NOT NULL, expires_at INTEGER NOT NULL
+        )""")
         con.execute("BEGIN IMMEDIATE")
         columns = {row[1] for row in con.execute("PRAGMA table_info(reservations)")}
         for column in ("created_at TEXT", "user_id INTEGER", "expires_at INTEGER", "request_key TEXT",
@@ -232,7 +250,8 @@ def admin_required(view):
 
 
 def safe_next(value):
-    return value if value and value.startswith("/") and not value.startswith("//") else "/"
+    return value if (value and value.startswith("/") and not value.startswith("//")
+                     and "\\" not in value and not any(ord(c) < 32 for c in value)) else "/"
 
 
 def too_many(key):
@@ -241,8 +260,12 @@ def too_many(key):
     return len(FAILS[key]) >= 5
 
 
-def login_page(error=None, mode="login", status=200):
+def login_page(error=None, mode="login", status=200, success=False):
     return render_template("login.html", error=error, mode=mode,
+                           error_ru=AUTH_RU.get(error, error),
+                           success=success, demo=registration_mode() == "demo",
+                           email=request.form.get("email", "")[:254],
+                           full_name=request.form.get("full_name", "")[:80],
                            next=safe_next(request.values.get("next"))), status
 
 
@@ -259,6 +282,7 @@ def login():
         con.row_factory = sqlite3.Row
         row = con.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
     if row and check_password_hash(row["password_hash"], password):
+        FAILS.pop(key, None)
         session.clear()
         session["uid"] = row["id"]
         return redirect(safe_next(request.form.get("next")))
@@ -271,7 +295,7 @@ def register():
     email = request.form.get("email", "").strip().lower()
     name = request.form.get("full_name", "").strip()[:80]
     password = request.form.get("password", "")
-    if not EMAIL_RE.match(email):
+    if len(email) > 254 or not EMAIL_RE.fullmatch(email):
         return login_page("Enter a valid email.", "register", 400)
     if ALLOWED_DOMAINS and email.split("@")[1] not in ALLOWED_DOMAINS:
         return login_page("Use your university email: @" + ALLOWED_DOMAINS[0], "register", 400)
@@ -280,28 +304,83 @@ def register():
     with database() as con:
         if con.execute("SELECT 1 FROM users WHERE email = ?", (email,)).fetchone():
             return login_page("This email is already registered.", "register", 409)
-    token = URLSafeTimedSerializer(app.secret_key, salt="email-verification").dumps(
-        {"email": email, "name": name, "password_hash": generate_password_hash(password),
-         "next": safe_next(request.form.get("next"))})
-    link = url_for("verify_email", token=token, _external=True)
+    destination = safe_next(request.form.get("next"))
+    password_hash = generate_password_hash(password)
+    if registration_mode() == "demo":
+        try:
+            with database() as con:
+                cur = con.execute("INSERT INTO users (email, full_name, password_hash, created_at) VALUES (?, ?, ?, ?)",
+                                  (email, name, password_hash, now()))
+        except sqlite3.IntegrityError:
+            return login_page("This email is already registered.", "register", 409)
+        session.clear()
+        session["uid"] = cur.lastrowid
+        return redirect(destination)
+    try:
+        mail_settings()
+    except ValueError as exc:
+        app.logger.error("Registration mail configuration: %s", exc)
+        return login_page("Email verification is not configured. Please contact the administrator.", "register", 503)
+    token = secrets.token_urlsafe(32)
+    token_hash = hashlib.sha256(token.encode()).hexdigest()
+    link = verification_link(token)
+    with database() as con:
+        con.execute("DELETE FROM pending_registrations WHERE expires_at <= ?", (int(time.time()),))
+        con.execute("INSERT INTO pending_registrations VALUES (?, ?, ?, ?, ?, ?)",
+                    (token_hash, email, name, password_hash, destination, int(time.time()) + 3600))
     try:
         send_verification_email(email, link)
     except (OSError, smtplib.SMTPException, ValueError):
-        return login_page("Email verification is unavailable. Please try again later.", "register", 503)
-    return login_page("Check your email for a verification link.", "login")
+        with database() as con:
+            con.execute("DELETE FROM pending_registrations WHERE token_hash = ?", (token_hash,))
+        # Do not log credentials, message bodies or confirmation links.
+        app.logger.error("Registration email delivery failed. Check SMTP connection, credentials and TLS mode.")
+        return login_page("Could not send the verification email. Please try again or contact the administrator.", "register", 503)
+    return login_page("Check your email for a verification link.", "login", success=True)
+
+
+def registration_mode():
+    return os.environ.get("PARKGO_REGISTRATION_MODE", "verified").strip().lower()
+
+
+def mail_settings():
+    if registration_mode() not in ("verified", "demo"):
+        raise ValueError("PARKGO_REGISTRATION_MODE must be verified or demo")
+    host = os.environ.get("PARKGO_SMTP_HOST", "").strip()
+    sender = os.environ.get("PARKGO_SMTP_FROM", "").strip()
+    if not host or not sender:
+        raise ValueError("Set PARKGO_SMTP_HOST and PARKGO_SMTP_FROM in the server environment")
+    if not EMAIL_RE.fullmatch(sender):
+        raise ValueError("PARKGO_SMTP_FROM must be an email address")
+    port = int(os.environ.get("PARKGO_SMTP_PORT", "587"))
+    mode = os.environ.get("PARKGO_SMTP_SECURITY", "ssl" if port == 465 else "starttls").lower()
+    if not 1 <= port <= 65535 or mode not in ("ssl", "starttls"):
+        raise ValueError("Use SMTP port 1–65535 and PARKGO_SMTP_SECURITY=ssl or starttls")
+    public_url = os.environ.get("PARKGO_PUBLIC_URL", "").rstrip("/")
+    parsed = urlsplit(public_url)
+    if public_url and (parsed.scheme not in ("http", "https") or not parsed.hostname
+                       or parsed.username or parsed.password or parsed.query or parsed.fragment or parsed.path):
+        raise ValueError("PARKGO_PUBLIC_URL must be the public http(s) origin without a path")
+    return host, sender, port, mode
+
+
+def verification_link(token):
+    base = os.environ.get("PARKGO_PUBLIC_URL", "").rstrip("/")
+    return base + url_for("verify_email", token=token) if base else url_for("verify_email", token=token, _external=True)
 
 
 def send_verification_email(email, link):
-    host = os.environ.get("PARKGO_SMTP_HOST")
-    sender = os.environ.get("PARKGO_SMTP_FROM")
-    if not host or not sender:
-        raise ValueError("SMTP not configured")
+    host, sender, port, mode = mail_settings()
     msg = EmailMessage()
     msg["Subject"] = "ParkGo: verify your email"
     msg["From"], msg["To"] = sender, email
     msg.set_content("Verify your email using this link (valid for one hour):\n" + link)
-    with smtplib.SMTP(host, int(os.environ.get("PARKGO_SMTP_PORT", "587")), timeout=10) as smtp:
-        smtp.starttls()
+    context = ssl.create_default_context()
+    connection = (smtplib.SMTP_SSL(host, port, timeout=10, context=context) if mode == "ssl"
+                  else smtplib.SMTP(host, port, timeout=10))
+    with connection as smtp:
+        if mode == "starttls":
+            smtp.starttls(context=context)
         if os.environ.get("PARKGO_SMTP_USER"):
             smtp.login(os.environ["PARKGO_SMTP_USER"], os.environ.get("PARKGO_SMTP_PASSWORD", ""))
         smtp.send_message(msg)
@@ -309,19 +388,22 @@ def send_verification_email(email, link):
 
 @app.route("/verify-email/<token>")
 def verify_email(token):
-    try:
-        data = URLSafeTimedSerializer(app.secret_key, salt="email-verification").loads(token, max_age=3600)
-    except (BadSignature, SignatureExpired):
-        return login_page("Verification link is invalid or expired.", "register", 400)
+    token_hash = hashlib.sha256(token.encode()).hexdigest()
     try:
         with database() as con:
+            con.execute("BEGIN IMMEDIATE")
+            data = con.execute("SELECT email, full_name, password_hash, next_path FROM pending_registrations WHERE token_hash = ? AND expires_at > ?",
+                               (token_hash, int(time.time()))).fetchone()
+            if data is None:
+                return login_page("Verification link is invalid or expired.", "register", 400)
             cur = con.execute("INSERT INTO users (email, full_name, password_hash, created_at) VALUES (?, ?, ?, ?)",
-                              (data["email"], data["name"], data["password_hash"], now()))
+                              (*data[:3], now()))
+            con.execute("DELETE FROM pending_registrations WHERE email = ?", (data[0],))
     except sqlite3.IntegrityError:
         return login_page("This email is already registered.", "login", 409)
     session.clear()
     session["uid"] = cur.lastrowid
-    return redirect(safe_next(data.get("next")))
+    return redirect(safe_next(data[3]))
 
 
 @app.route("/logout")
@@ -571,9 +653,11 @@ def support():
 # --- датчики (симулятор sensor_simulator.py шлёт сюда данные) ---------------
 @app.route("/api/sensor", methods=["POST"])
 def sensor():
-    if not secrets.compare_digest(request.headers.get("X-Sensor-Token", ""), SENSOR_TOKEN):
+    if not secrets.compare_digest(request.headers.get("X-Sensor-Token", "").encode(), SENSOR_TOKEN.encode()):
         return jsonify(ok=False, error="bad token"), 401
-    data = request.get_json(silent=True) or {}
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify(ok=False, error="JSON object required"), 400
     status = data.get("status")
     try:
         spot_id = int(data.get("spot_id"))
@@ -582,6 +666,7 @@ def sensor():
     if status not in ("Occupied", "Available"):
         return jsonify(ok=False, error="status must be Occupied or Available"), 400
     with database() as con:
+        con.execute("BEGIN IMMEDIATE")
         row = con.execute("SELECT status FROM parking_spots WHERE id = ?", (spot_id,)).fetchone()
         if row is None:
             return jsonify(ok=False, error="spot not found"), 404
@@ -637,7 +722,9 @@ def update_charging():
 @admin_required
 def resolve_report(report_id):
     with database() as con:
-        con.execute("UPDATE support_reports SET status = 'resolved' WHERE id = ?", (report_id,))
+        result = con.execute("UPDATE support_reports SET status = 'resolved' WHERE id = ?", (report_id,))
+        if not result.rowcount:
+            abort(404)
     return jsonify(ok=True)
 
 
@@ -698,6 +785,17 @@ def admin():
 init_db()
 
 if __name__ == "__main__":
+    if len(sys.argv) == 2 and sys.argv[1] == "check-mail":
+        if registration_mode() == "demo":
+            print("Demo registration: email ownership is NOT verified; SMTP is not used.")
+        else:
+            try:
+                _, _, port, security = mail_settings()
+            except ValueError as exc:
+                print("Mail configuration error:", exc)
+                sys.exit(1)
+            print(f"Mail configuration valid: port {port}, {security}. Delivery has not been tested.")
+        sys.exit(0)
     if len(sys.argv) == 4 and sys.argv[1] == "make-admin":
         make_admin(sys.argv[2], sys.argv[3])
         print("Администратор сохранён:", sys.argv[2].lower())

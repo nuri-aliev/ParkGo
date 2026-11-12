@@ -17,6 +17,9 @@ from werkzeug.security import generate_password_hash
 with sqlite3.connect(park.DB) as con:
     con.execute("INSERT INTO users(email,full_name,password_hash,role,created_at) VALUES (?, ?, ?, 'user', ?)",
                 ("test@astanait.edu.kz", "Test", generate_password_hash("test-password"), park.now()))
+    if "--admin-user" in sys.argv:
+        con.execute("INSERT INTO users(email,full_name,password_hash,role,created_at) VALUES (?, ?, ?, 'admin', ?)",
+                    ("test-admin@astanait.edu.kz", "Test admin", generate_password_hash("test-password"), park.now()))
     if "--reference-layout" in sys.argv:
         con.executemany("INSERT INTO parking_spots(name,location,price,status) VALUES (?, 'Campus North', 500, 'Available')",
                         [(f"A{i:02}",) for i in range(3, 17)])

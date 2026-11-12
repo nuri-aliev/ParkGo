@@ -27,6 +27,7 @@ input{width:100%;height:58px;border-radius:16px;border:1px solid var(--ln);paddi
 input:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid var(--g);outline-offset:2px}
 .cta{width:100%;height:56px;border:0;border-radius:18px;background:var(--g);color:#fff;font-weight:800;font-size:15px;text-transform:uppercase;margin-top:22px;cursor:pointer;box-shadow:0 8px 20px #A7442F24}
 .err{background:#fbe2e2;color:var(--rd);border-radius:14px;padding:12px 14px;font-weight:600;font-size:14px;margin-bottom:6px}
+.err.success{background:var(--gl);color:var(--gd)}
 .note{font-size:12px;color:var(--mut);margin-top:14px}
 a{color:var(--g);font-weight:700}
 form{display:none}form.on{display:block}
@@ -38,12 +39,12 @@ form{display:none}form.on{display:block}
   <div class="top"><div class="brand"><span class="mark"><img src="/static/images/parkgo-mark.svg" alt=""></span>ParkGo</div><div class="lang" id="lang"></div></div>
   <h1 id="h"></h1><p class="sub" id="s"></p>
   <div class="seg"><button type="button" data-m="login" id="b1"></button><button type="button" data-m="register" id="b2"></button></div>
-  {% if error %}<div class="err">{{ error }}</div>{% endif %}
+  {% if error %}<div class="err {{ 'success' if success }}" id="authMessage" role="{{ 'status' if success else 'alert' }}">{{ error_ru }}</div>{% endif %}
 
   <form method="post" action="/login" id="f-login" class="{{ 'on' if mode != 'register' else '' }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <input type="hidden" name="next" value="{{ next }}">
-    <label for="e1" data-t="email"></label><input id="e1" name="email" type="email" required autocomplete="email">
+    <label for="e1" data-t="email"></label><input id="e1" name="email" type="email" required autocomplete="email" maxlength="254" value="{{ email }}">
     <label for="p1" data-t="pass"></label><input id="p1" name="password" type="password" required autocomplete="current-password">
     <button class="cta" data-t="signin"></button>
   </form>
@@ -51,8 +52,9 @@ form{display:none}form.on{display:block}
   <form method="post" action="/register" id="f-register" class="{{ 'on' if mode == 'register' else '' }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <input type="hidden" name="next" value="{{ next }}">
-    <label for="n2" data-t="name"></label><input id="n2" name="full_name" maxlength="80" autocomplete="name">
-    <label for="e2" data-t="email"></label><input id="e2" name="email" type="email" required autocomplete="email" placeholder="name@astanait.edu.kz">
+    {% if demo %}<p class="note" data-t="demo"></p>{% endif %}
+    <label for="n2" data-t="name"></label><input id="n2" name="full_name" maxlength="80" autocomplete="name" value="{{ full_name }}">
+    <label for="e2" data-t="email"></label><input id="e2" name="email" type="email" required autocomplete="email" maxlength="254" placeholder="name@astanait.edu.kz" value="{{ email }}">
     <label for="p2" data-t="pass8"></label><input id="p2" name="password" type="password" required minlength="8" autocomplete="new-password">
     <button class="cta" data-t="signup"></button>
   </form>
@@ -63,16 +65,21 @@ form{display:none}form.on{display:block}
 <script>
 const T={ru:{h:"Вход в ParkGo",s:"Войдите, чтобы бронировать места",b1:"Вход",b2:"Регистрация",email:"Университетская почта",pass:"Пароль",pass8:"Пароль (минимум 8 символов)",name:"Имя",signin:"Войти",signup:"Создать аккаунт",hash:"Пароли хранятся только в виде хеша, мы не видим ваш пароль.",back:"На карту"},
 en:{h:"Log in to ParkGo",s:"Log in to book parking spots",b1:"Log in",b2:"Register",email:"University email",pass:"Password",pass8:"Password (at least 8 characters)",name:"Name",signin:"Log in",signup:"Create account",hash:"Passwords are stored only as a hash. We never see your password.",back:"Back to map"}};
-let lang=localStorage.getItem("pg-lang")||"ru";
+Object.assign(T.ru,{registerH:"Регистрация в ParkGo",registerS:"Создайте аккаунт, чтобы бронировать места",demo:"Учебный режим: подтверждение владения почтой отключено."});
+Object.assign(T.en,{registerH:"Create a ParkGo account",registerS:"Register to book parking spots",demo:"Demo mode: email ownership is not verified."});
+const authMessage={{ {'ru': error_ru, 'en': error}|tojson }},messageMode={{ mode|tojson }};
+let lang="ru";try{const saved=localStorage.getItem("pg-lang");if(saved==="en")lang=saved}catch{}
 const $=s=>document.querySelector(s);
 function render(){document.documentElement.lang=lang;
  for(const k of ["h","s","b1","b2"])$("#"+k).textContent=T[lang][k];
  document.querySelectorAll("[data-t]").forEach(e=>e.textContent=T[lang][e.dataset.t]);
  $("#lang").innerHTML=["ru","en"].map(x=>`<button class="${x==lang?"on":""}" data-l="${x}">${x.toUpperCase()}</button>`).join("");
  const m=$("#f-register").classList.contains("on")?"register":"login";
+ if(m==="register"){$("#h").textContent=T[lang].registerH;$("#s").textContent=T[lang].registerS}
+ const message=$("#authMessage");if(message){message.textContent=authMessage[lang];message.hidden=m!==messageMode}
  $("#b1").classList.toggle("on",m=="login");$("#b2").classList.toggle("on",m=="register")}
 document.addEventListener("click",e=>{
- const l=e.target.closest("[data-l]");if(l){lang=l.dataset.l;localStorage.setItem("pg-lang",lang);render()}
+ const l=e.target.closest("[data-l]");if(l){lang=l.dataset.l;try{localStorage.setItem("pg-lang",lang)}catch{}render()}
  const m=e.target.closest("[data-m]");if(m){const previous=$("form.on");$("#f-login").classList.toggle("on",m.dataset.m=="login");$("#f-register").classList.toggle("on",m.dataset.m=="register");render();const next=$("form.on");if(previous!==next)window.ParkGoMotion?.reveal(next)}});
 render();
 </script>

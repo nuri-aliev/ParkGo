@@ -2,6 +2,13 @@
 set -euo pipefail
 cd -- "$(dirname -- "${BASH_SOURCE[0]}")"
 
+# Optional local server configuration; never commit this file.
+if [[ -f "${PARKGO_ENV_FILE:-.env}" ]]; then
+    set -a
+    source "${PARKGO_ENV_FILE:-.env}"
+    set +a
+fi
+
 if [[ ! -x .venv/bin/python ]]; then
     python3 -m venv .venv
 fi
